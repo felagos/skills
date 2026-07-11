@@ -1,20 +1,24 @@
 ---
-name: spring-boot
+name: spring-boot-claude-code
 description: >
-  Skill for writing Spring Boot applications with Java 21 following Clean / Hexagonal
-  Architecture. Domain layer holds pure objects and repository port interfaces. Application
-  layer holds use cases (one class per use case) that only depend on the domain. Infrastructure
-  holds two adapters: web (controller, DTOs, WebMapper) and persistence (JPA entity,
-  JpaRepository, PersistenceMapper, RepositoryAdapter). DTOs never cross into application or
-  domain. JPA entities never leave the persistence adapter. Mappers translate at each boundary.
-  No Lombok. Constructor injection always. Records for immutable types.
-  Activate on any mention of Spring, Spring Boot, use case, service, controller, repository,
-  entity, REST, JPA, dependency injection, clean architecture, hexagonal, or any JVM backend task.
+  Skill for writing executable Spring Boot applications with Java 21 in Claude Code
+  using Clean / Hexagonal Architecture. Domain layer holds pure objects and repository
+  port interfaces. Application layer holds use cases (one per operation) depending only
+  on domain. Infrastructure holds web adapter (controller, DTOs, WebMapper) and
+  persistence adapter (JPA entity, JpaRepository, PersistenceMapper, RepositoryAdapter).
+  DTOs never cross into application/domain. JPA entities never leave persistence.
+  Includes Maven/Gradle setup for Claude Code terminal execution, logging, embedded
+  database (H2), and complete runnable examples. No Lombok. Constructor injection always.
+  Records for immutable types. Activate on Spring Boot, Spring, use case, service,
+  controller, repository, entity, REST, JPA, clean architecture, hexagonal, or any
+  JVM backend task in Claude Code.
 ---
 
-# Spring Boot + Java 21 — Clean / Hexagonal Architecture
+# Spring Boot + Java 21 for Claude Code — Clean / Hexagonal Architecture
 
-You are a senior Java developer who writes modern Spring Boot applications using Java 21 with a strict Clean Architecture. Apply every convention in this skill to all code you generate or review.
+You are a senior Java developer writing modern, executable Spring Boot applications using
+Java 21 with strict Clean Architecture in Claude Code environments (terminal, VS Code,
+JetBrains, desktop). Apply every convention in this skill to all code you generate or review.
 
 ---
 
@@ -24,34 +28,40 @@ You are a senior Java developer who writes modern Spring Boot applications using
 src/main/java/com/example/
 ├── domain/
 │   ├── model/
-│   │   └── Product.java                         ← pure domain object (no framework deps)
+│   │   └── Product.java                         ← pure domain object (no framework)
 │   └── repository/
-│       └── ProductRepository.java               ← repository port (interface, no Spring)
+│       └── ProductRepository.java               ← repository port (interface)
 │
 ├── application/
 │   └── usecase/
-│       ├── CreateProductUseCase.java             ← one class per use case
+│       ├── CreateProductUseCase.java
 │       ├── FindProductUseCase.java
 │       └── DeleteProductUseCase.java
 │
 └── infrastructure/
-    ├── web/                                      ← input adapter
+    ├── web/
     │   ├── controller/
     │   │   └── ProductController.java
     │   ├── dto/
-    │   │   ├── CreateProductRequest.java         ← input DTO (record)
-    │   │   └── ProductResponse.java              ← output DTO (record)
+    │   │   ├── CreateProductRequest.java
+    │   │   └── ProductResponse.java
     │   └── mapper/
-    │       └── ProductWebMapper.java             ← DTO ↔ domain (@Component)
+    │       └── ProductWebMapper.java
     │
-    └── persistence/                              ← output adapter
+    └── persistence/
         ├── entity/
-        │   └── ProductEntity.java               ← @Entity (JPA only)
+        │   └── ProductEntity.java
         ├── repository/
-        │   ├── ProductJpaRepository.java         ← package-private JpaRepository
-        │   └── ProductRepositoryAdapter.java     ← implements domain port (@Repository)
+        │   ├── ProductJpaRepository.java
+        │   └── ProductRepositoryAdapter.java
         └── mapper/
-            └── ProductPersistenceMapper.java     ← domain ↔ entity (@Component)
+            └── ProductPersistenceMapper.java
+
+src/main/resources/
+├── application.properties                       ← Spring Boot config (H2 for demo)
+└── schema.sql                                   ← database init (optional)
+
+pom.xml                                          ← Maven config (Spring Boot 3.x + Java 21)
 ```
 
 **Layer rules (never break these):**
@@ -65,55 +75,269 @@ src/main/java/com/example/
 
 ---
 
-## 0. Before coding — Consult Context7
+## 0. Claude Code context for Spring Boot
 
-**Always** consult the official documentation via MCP Context7 before using any Spring Boot API:
+**Environment**: Claude Code runs Spring Boot applications on Linux/macOS/Windows via Maven/Gradle or `java -jar`.
 
-```
-resolve-library-id → "spring-boot", "spring-framework", "spring-data"
-get-library-docs   → "Dependency Injection", "Spring Data JPA", "Spring MVC",
-                     "Spring Security", "@Transactional"
-```
+**Key characteristics**:
+- Tomcat or Netty embedded HTTP server listening on `localhost:8080` (or configured port).
+- In-memory H2 database recommended for demos and testing (no external setup).
+- Application lifecycle: start → handle requests → graceful shutdown.
+- Logging via SLF4J + Logback output to console (not files).
+- Single-instance, stateless: each run is isolated.
+- Execution model: `mvn spring-boot:run` or `gradle bootRun` in terminal.
 
-If the tool is unavailable, explicitly inform the user.
+**Execution patterns**:
+1. **Simple REST API demo**: Single aggregate, 3–4 endpoints, H2 database.
+2. **CLI data processor**: Spring Boot app that reads input and produces output.
+3. **Scheduled task**: Spring Boot with `@Scheduled` for batch processing.
+4. **Integration test**: Full stack tested in `@SpringBootTest`.
 
 ---
 
-## 1. Domain layer — pure Java, zero framework dependencies
+## 1. Maven pom.xml — Spring Boot 3.x + Java 21 + H2
 
-### Domain model
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>my-app</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>My Spring Boot App</name>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.0</version>
+        <relativePath/>
+    </parent>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- Spring Boot Web (REST API) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Data JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- H2 in-memory database (for demo / testing) -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- PostgreSQL driver (uncomment for production) -->
+        <!--
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        -->
+
+        <!-- Logging (SLF4J + Logback already included in spring-boot-starter) -->
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven plugin for mvn spring-boot:run -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- Compiler plugin (Java 21) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                    <release>21</release>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+### Run with Maven:
+```bash
+mvn clean spring-boot:run
+# → Server starts on http://localhost:8080
+```
+
+---
+
+## 2. Gradle build.gradle — alternative to Maven
+
+```gradle
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.0'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'com.example'
+version = '1.0.0'
+sourceCompatibility = '21'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'com.h2database:h2'
+    
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+```
+
+### Run with Gradle:
+```bash
+./gradlew bootRun
+# → Server starts on http://localhost:8080
+```
+
+---
+
+## 3. application.properties — H2 + logging
+
+```properties
+# Server
+server.port=8080
+server.servlet.context-path=/
+
+# Database: H2 in-memory (Claude Code friendly)
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+
+# JPA / Hibernate
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+
+# H2 console (optional: http://localhost:8080/h2-console)
+spring.h2.console.enabled=false
+
+# Logging (output to console)
+logging.level.root=INFO
+logging.level.com.example=DEBUG
+logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} [%-5level] %logger{36} - %msg%n
+
+# Application name (printed on startup)
+spring.application.name=My Spring Boot App
+```
+
+---
+
+## 4. Domain layer — pure Java, zero framework dependencies
+
+### Domain model (record for immutable data)
 
 ```java
 package com.example.domain.model;
 
-// ✅ record for immutable domain objects (value objects, read-only aggregates)
-public record Product(Long id, String name, BigDecimal price, Long categoryId) {}
+import java.math.BigDecimal;
 
-// ✅ class for mutable domain objects (aggregates with behaviour)
+// ✅ record: immutable value object
+public record Product(Long id, String name, BigDecimal price, Long categoryId) {}
+```
+
+### Domain model (class for mutable aggregate)
+
+```java
+package com.example.domain.model;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+// ✅ class: aggregate with behavior
 public class Order {
     private Long id;
     private OrderStatus status;
     private List<OrderLine> lines;
+    private LocalDateTime createdAt;
 
-    public Order(Long id, OrderStatus status, List<OrderLine> lines) {
-        this.id     = id;
-        this.status = status;
-        this.lines  = new ArrayList<>(lines);
+    public Order(Long id, OrderStatus status, List<OrderLine> lines, LocalDateTime createdAt) {
+        this.id        = id;
+        this.status    = status;
+        this.lines     = new ArrayList<>(lines);
+        this.createdAt = createdAt;
     }
 
-    public Long getId()               { return id; }
-    public OrderStatus getStatus()    { return status; }
-    public List<OrderLine> getLines() { return List.copyOf(lines); }
+    // Getters
+    public Long getId()                    { return id; }
+    public OrderStatus getStatus()         { return status; }
+    public List<OrderLine> getLines()      { return List.copyOf(lines); }
+    public LocalDateTime getCreatedAt()    { return createdAt; }
 
+    // Domain behavior
     public void confirm() {
         if (status != OrderStatus.PENDING)
             throw new IllegalStateException("Only PENDING orders can be confirmed");
         this.status = OrderStatus.CONFIRMED;
     }
+
+    public void cancel() {
+        if (status == OrderStatus.COMPLETED || status == OrderStatus.CANCELLED)
+            throw new IllegalStateException("Cannot cancel " + status + " order");
+        this.status = OrderStatus.CANCELLED;
+    }
 }
+
+// Domain enums
+public enum OrderStatus {
+    PENDING, CONFIRMED, COMPLETED, CANCELLED
+}
+
+public record OrderLine(Long id, Product product, int quantity) {}
 ```
 
-### Repository port — interface only, no Spring annotations
+### Repository port (interface, no Spring annotations)
 
 ```java
 package com.example.domain.repository;
@@ -133,11 +357,11 @@ public interface ProductRepository {
 
 ---
 
-## 2. Application layer — use cases, domain only
+## 5. Application layer — use cases
 
-One class per use case. Each use case is a `@Component` with a single `execute()` method. Use cases depend only on domain types and domain repository ports — never on DTOs, HTTP types, or JPA.
+One `@Component` class per use case. Never depend on DTOs, HTTP, or JPA.
 
-### Pattern
+### CreateProductUseCase
 
 ```java
 package com.example.application.usecase;
@@ -157,13 +381,23 @@ public class CreateProductUseCase {
     }
 
     @Transactional
-    public Product execute(Product product) {
+    public Product execute(String name, java.math.BigDecimal price, Long categoryId) {
+        var product = new Product(null, name, price, categoryId);
         return productRepository.save(product);
     }
 }
 ```
 
+### FindProductUseCase
+
 ```java
+package com.example.application.usecase;
+
+import com.example.domain.model.Product;
+import com.example.domain.repository.ProductRepository;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 @Component
 public class FindProductUseCase {
 
@@ -173,18 +407,28 @@ public class FindProductUseCase {
         this.productRepository = productRepository;
     }
 
+    @Transactional(readOnly = true)
     public List<Product> findAll() {
         return productRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
     public Product findById(Long id) {
         return productRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Product", id));
+            .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
     }
 }
 ```
 
+### DeleteProductUseCase
+
 ```java
+package com.example.application.usecase;
+
+import com.example.domain.repository.ProductRepository;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 @Component
 public class DeleteProductUseCase {
 
@@ -197,47 +441,56 @@ public class DeleteProductUseCase {
     @Transactional
     public void execute(Long id) {
         if (!productRepository.existsById(id))
-            throw new ResourceNotFoundException("Product", id);
+            throw new ResourceNotFoundException("Product not found: " + id);
         productRepository.deleteById(id);
     }
 }
 ```
 
-### Use case naming convention
-| Operation | Class name |
-|---|---|
-| Create / register | `Create{Entity}UseCase` |
-| Query one | `Find{Entity}ByIdUseCase` or `Find{Entity}UseCase` |
-| Query many | `List{Entities}UseCase` or `Find{Entity}UseCase` |
-| Update | `Update{Entity}UseCase` |
-| Delete | `Delete{Entity}UseCase` |
+### Custom exceptions
+
+```java
+package com.example.application.exception;
+
+public class ResourceNotFoundException extends RuntimeException {
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
+}
+```
 
 ---
 
-## 3. Infrastructure — web adapter (input)
+## 6. Infrastructure layer — web adapter
 
-### DTOs — records, controller boundary only
+### DTOs (records)
 
 ```java
 // infrastructure/web/dto/CreateProductRequest.java
 package com.example.infrastructure.web.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import java.math.BigDecimal;
+
 public record CreateProductRequest(
-    @NotBlank String name,
-    @Positive BigDecimal price,
-    @NotNull Long categoryId
+    @NotBlank(message = "Name is required") String name,
+    @Positive(message = "Price must be positive") BigDecimal price,
+    @NotNull(message = "Category ID is required") Long categoryId
 ) {}
 
 // infrastructure/web/dto/ProductResponse.java
 package com.example.infrastructure.web.dto;
 
+import java.math.BigDecimal;
+
 public record ProductResponse(Long id, String name, BigDecimal price) {}
 ```
 
-### WebMapper — DTO ↔ domain
+### WebMapper (DTO ↔ domain)
 
 ```java
-// infrastructure/web/mapper/ProductWebMapper.java
 package com.example.infrastructure.web.mapper;
 
 import com.example.domain.model.Product;
@@ -258,11 +511,22 @@ public class ProductWebMapper {
 }
 ```
 
-### Controller — injects use cases + WebMapper
+### REST Controller
 
 ```java
-// infrastructure/web/controller/ProductController.java
 package com.example.infrastructure.web.controller;
+
+import com.example.application.usecase.CreateProductUseCase;
+import com.example.application.usecase.FindProductUseCase;
+import com.example.application.usecase.DeleteProductUseCase;
+import com.example.infrastructure.web.dto.CreateProductRequest;
+import com.example.infrastructure.web.dto.ProductResponse;
+import com.example.infrastructure.web.mapper.ProductWebMapper;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/products")
@@ -285,7 +549,7 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProductResponse>> list() {
+    public ResponseEntity<List<ProductResponse>> listAll() {
         var products = findProductUseCase.findAll().stream()
             .map(mapper::toResponse)
             .toList();
@@ -293,15 +557,19 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProductResponse> get(@PathVariable Long id) {
-        return ResponseEntity.ok(mapper.toResponse(findProductUseCase.findById(id)));
+    public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
+        var product = findProductUseCase.findById(id);
+        return ResponseEntity.ok(mapper.toResponse(product));
     }
 
     @PostMapping
     public ResponseEntity<ProductResponse> create(
             @Valid @RequestBody CreateProductRequest request) {
-        var created = createProductUseCase.execute(mapper.toDomain(request));
-        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toResponse(created));
+        var created = createProductUseCase.execute(
+            request.name(), request.price(), request.categoryId()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(mapper.toResponse(created));
     }
 
     @DeleteMapping("/{id}")
@@ -312,15 +580,52 @@ public class ProductController {
 }
 ```
 
----
-
-## 4. Infrastructure — persistence adapter (output)
-
-### JPA Entity — no-arg constructor, no domain annotations
+### Global exception handler
 
 ```java
-// infrastructure/persistence/entity/ProductEntity.java
+package com.example.infrastructure.web.controller;
+
+import com.example.application.exception.ResourceNotFoundException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import java.time.LocalDateTime;
+
+@ControllerAdvice
+public class GlobalExceptionHandler {
+
+    public record ErrorResponse(
+        int status,
+        String message,
+        LocalDateTime timestamp
+    ) {}
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException e) {
+        var error = new ErrorResponse(404, e.getMessage(), LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneric(Exception e) {
+        var error = new ErrorResponse(500, "Internal server error", LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+}
+```
+
+---
+
+## 7. Infrastructure layer — persistence adapter
+
+### JPA Entity
+
+```java
 package com.example.infrastructure.persistence.entity;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "products")
@@ -341,11 +646,13 @@ public class ProductEntity {
 
     public ProductEntity() {}
 
+    // Getters
     public Long getId()          { return id; }
     public String getName()      { return name; }
     public BigDecimal getPrice() { return price; }
     public Long getCategoryId()  { return categoryId; }
 
+    // Setters
     public void setId(Long id)                { this.id = id; }
     public void setName(String name)          { this.name = name; }
     public void setPrice(BigDecimal price)    { this.price = price; }
@@ -353,10 +660,9 @@ public class ProductEntity {
 }
 ```
 
-### Spring Data JPA repository — package-private
+### Spring Data JPA repository (package-private)
 
 ```java
-// infrastructure/persistence/repository/ProductJpaRepository.java
 package com.example.infrastructure.persistence.repository;
 
 import com.example.infrastructure.persistence.entity.ProductEntity;
@@ -366,10 +672,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 interface ProductJpaRepository extends JpaRepository<ProductEntity, Long> {}
 ```
 
-### PersistenceMapper — domain ↔ entity
+### PersistenceMapper (domain ↔ entity)
 
 ```java
-// infrastructure/persistence/mapper/ProductPersistenceMapper.java
 package com.example.infrastructure.persistence.mapper;
 
 import com.example.domain.model.Product;
@@ -399,21 +704,22 @@ public class ProductPersistenceMapper {
 }
 ```
 
-### Repository adapter — implements domain port
+### Repository adapter (implements domain port)
 
 ```java
-// infrastructure/persistence/repository/ProductRepositoryAdapter.java
 package com.example.infrastructure.persistence.repository;
 
 import com.example.domain.model.Product;
 import com.example.domain.repository.ProductRepository;
 import com.example.infrastructure.persistence.mapper.ProductPersistenceMapper;
 import org.springframework.stereotype.Repository;
+import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class ProductRepositoryAdapter implements ProductRepository {
 
-    private final ProductJpaRepository    jpaRepository;
+    private final ProductJpaRepository jpaRepository;
     private final ProductPersistenceMapper mapper;
 
     public ProductRepositoryAdapter(
@@ -437,7 +743,9 @@ public class ProductRepositoryAdapter implements ProductRepository {
 
     @Override
     public Product save(Product product) {
-        return mapper.toDomain(jpaRepository.save(mapper.toEntity(product)));
+        var entity = mapper.toEntity(product);
+        var saved = jpaRepository.save(entity);
+        return mapper.toDomain(saved);
     }
 
     @Override
@@ -454,33 +762,149 @@ public class ProductRepositoryAdapter implements ProductRepository {
 
 ---
 
-## 5. Dependency injection — constructor only
-
-**Forbidden**: `@Autowired` on fields or setters. Always use explicit constructor injection.
+## 8. Spring Boot Application entry point
 
 ```java
-// ❌ NEVER
-@Autowired
-private ProductRepository productRepository;
+package com.example;
 
-// ✅ ALWAYS
-private final ProductRepository productRepository;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-public CreateProductUseCase(ProductRepository productRepository) {
-    this.productRepository = productRepository;
+@SpringBootApplication
+public class Application {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
 }
 ```
 
 ---
 
-## 6. Style and conventions
+## 9. Running in Claude Code
+
+### Option A: Maven
+```bash
+mvn clean spring-boot:run
+# Output:
+#   ... INFO Application started ...
+#   → Tomcat started on port(s): 8080 (http)
+#   → Ready to handle requests.
+```
+
+Test endpoint:
+```bash
+curl http://localhost:8080/api/v1/products
+```
+
+### Option B: Gradle
+```bash
+./gradlew bootRun
+```
+
+### Option C: Build JAR and run
+```bash
+mvn clean package
+java -jar target/my-app-1.0.0.jar
+```
+
+### Graceful shutdown
+```bash
+Ctrl+C
+```
+
+---
+
+## 10. Testing strategy
+
+### Unit test (plain JUnit, no Spring)
+
+```java
+package com.example.application.usecase;
+
+import com.example.domain.model.Product;
+import com.example.domain.repository.ProductRepository;
+import org.junit.jupiter.api.Test;
+import java.math.BigDecimal;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
+class CreateProductUseCaseTest {
+
+    private final ProductRepository repository = mock(ProductRepository.class);
+    private final CreateProductUseCase useCase = new CreateProductUseCase(repository);
+
+    @Test
+    void shouldSaveAndReturnProduct() {
+        var request = new CreateProductRequest("Widget", new BigDecimal("9.99"), 1L);
+        var expected = new Product(1L, "Widget", new BigDecimal("9.99"), 1L);
+        when(repository.save(any())).thenReturn(expected);
+
+        var result = useCase.execute("Widget", new BigDecimal("9.99"), 1L);
+
+        assertThat(result.id()).isEqualTo(1L);
+        verify(repository).save(any(Product.class));
+    }
+}
+```
+
+### Integration test (full Spring context)
+
+```java
+package com.example;
+
+import com.example.infrastructure.web.dto.CreateProductRequest;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class ProductControllerIntegrationTest {
+
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
+
+    @Test
+    void shouldCreateAndReturnProduct() throws Exception {
+        var request = new CreateProductRequest("Widget", java.math.BigDecimal.valueOf(9.99), 1L);
+
+        mockMvc.perform(post("/api/v1/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.name").value("Widget"))
+            .andExpect(jsonPath("$.price").value(9.99));
+    }
+}
+```
+
+Run tests:
+```bash
+mvn test
+# or
+./gradlew test
+```
+
+---
+
+## 11. Style and conventions
 
 | Aspect | Rule |
 |---|---|
 | Domain model | No Spring/JPA annotations; `record` if immutable, class if mutable |
 | Repository port | Interface in `domain/repository/`; no `@Repository` |
-| Use cases | One `@Component` class per use case in `application/usecase/` |
-| DTOs | `record` in `infrastructure/web/dto/`; never cross into application/domain |
+| Use cases | One `@Component` class per use case, `execute()` method |
+| DTOs | `record` in `infrastructure/web/dto/`; never cross boundaries |
 | JPA Entities | Class in `infrastructure/persistence/entity/`; never leave persistence |
 | WebMapper | `@Component` in `infrastructure/web/mapper/`; DTO ↔ domain |
 | PersistenceMapper | `@Component` in `infrastructure/persistence/mapper/`; domain ↔ entity |
@@ -491,79 +915,65 @@ public CreateProductUseCase(ProductRepository productRepository) {
 | Collections | `List.of()`, `Map.of()`, `Set.of()` for immutable collections |
 | Imports | No wildcards |
 | Naming | `camelCase` vars/methods, `PascalCase` classes, `SNAKE_CASE` constants |
+| Logging | Use SLF4J / Logback via `org.slf4j.Logger`; output to console |
+| Exit behavior | Graceful shutdown on Ctrl+C; no explicit `System.exit()` unless error |
 
 ---
 
-## 7. Code generation order
+## 12. Complete minimal example
 
-When generating a new feature, always follow this order:
-
-```
-1. domain/model/{Entity}.java                          ← domain object
-2. domain/repository/{Entity}Repository.java           ← port interface
-3. application/usecase/Create{Entity}UseCase.java      ← use cases
-4. application/usecase/Find{Entity}UseCase.java
-5. infrastructure/persistence/entity/{Entity}Entity.java
-6. infrastructure/persistence/mapper/{Entity}PersistenceMapper.java
-7. infrastructure/persistence/repository/{Entity}JpaRepository.java
-8. infrastructure/persistence/repository/{Entity}RepositoryAdapter.java
-9. infrastructure/web/dto/Create{Entity}Request.java
-10. infrastructure/web/dto/{Entity}Response.java
-11. infrastructure/web/mapper/{Entity}WebMapper.java
-12. infrastructure/web/controller/{Entity}Controller.java
-```
-
----
-
-## 8. Workflow with Context7
+For a quick runnable project, see the structure:
 
 ```
-1. User requests a feature
-2. → resolve-library-id("spring-boot") via Context7
-3. → get-library-docs(libraryId, topic: "Spring Data JPA") via Context7
-4. Follow the code generation order above
-5. Apply var + functional style (streams, Optional) where appropriate
+my-spring-app/
+├── pom.xml
+├── src/main/java/com/example/
+│   ├── Application.java
+│   ├── domain/
+│   │   ├── model/Product.java
+│   │   └── repository/ProductRepository.java
+│   ├── application/usecase/
+│   │   ├── CreateProductUseCase.java
+│   │   ├── FindProductUseCase.java
+│   │   └── DeleteProductUseCase.java
+│   ├── infrastructure/web/
+│   │   ├── controller/ProductController.java
+│   │   ├── dto/{CreateProductRequest,ProductResponse}.java
+│   │   └── mapper/ProductWebMapper.java
+│   └── infrastructure/persistence/
+│       ├── entity/ProductEntity.java
+│       ├── repository/{ProductJpaRepository,ProductRepositoryAdapter}.java
+│       └── mapper/ProductPersistenceMapper.java
+├── src/main/resources/
+│   └── application.properties
+└── src/test/java/...
 ```
 
----
-
-## 9. Testing strategy
-
-| Component | Test type | Annotation |
-|---|---|---|
-| Use case | Unit test (no Spring) | plain JUnit + Mockito |
-| Repository adapter | Slice test | `@DataJpaTest` |
-| Controller | Slice test | `@WebMvcTest` |
-| Full flow | Integration test | `@SpringBootTest` |
-
-Use cases are instantiated directly with mock ports — no Spring context needed:
-
-```java
-class CreateProductUseCaseTest {
-
-    private final ProductRepository productRepository = mock(ProductRepository.class);
-    private final CreateProductUseCase useCase = new CreateProductUseCase(productRepository);
-
-    @Test
-    void shouldSaveAndReturnDomainProduct() {
-        var input  = new Product(null, "Widget", new BigDecimal("9.99"), 1L);
-        var saved  = new Product(1L,   "Widget", new BigDecimal("9.99"), 1L);
-        when(productRepository.save(input)).thenReturn(saved);
-
-        var result = useCase.execute(input);
-
-        assertThat(result.id()).isEqualTo(1L);
-        verify(productRepository).save(input);
-    }
-}
+**Run**:
+```bash
+mvn clean spring-boot:run
+# Access: http://localhost:8080/api/v1/products
 ```
 
 ---
 
 ## Final notes
 
-- **Minimum version**: Java 21 LTS + Spring Boot 3.x.
-- **Context7**: Official documentation takes precedence over training knowledge.
+- **Minimum version**: Java 21 LTS + Spring Boot 3.3+.
+- **Database**: H2 in-memory for demos; switch to PostgreSQL in production via pom.xml.
 - **No Lombok**: Write all constructors, getters, and methods explicitly.
-- **Layer isolation**: DTOs never cross into application or domain. JPA entities never leave `infrastructure/persistence`. Domain objects are the shared language between all layers.
-- **`@Transactional` placement**: on use case methods (not on repository adapters), since the transaction boundary belongs to the application layer.
+- **Layer isolation**: Strictly enforced — DTOs never in domain/application, entities never outside persistence.
+- **Domain objects**: Shared language between all layers; immutable when possible (records).
+- **Transactions**: Applied at application layer (use case methods), not infrastructure.
+- **Claude Code execution**: Always include `mvn clean spring-boot:run` or equivalent as the execution command in documentation.
+- **Official docs**: https://docs.spring.io/spring-boot/docs/current/reference/html/
+
+---
+
+## References
+
+- Spring Boot Docs: https://docs.spring.io/spring-boot/docs/current/reference/html/
+- Spring Data JPA: https://docs.spring.io/spring-data/jpa/docs/current/reference/html/
+- Java 21 Language Features: https://docs.oracle.com/en/java/javase/21/docs/specs/
+- Clean Architecture: https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html
+- Claude Code Docs: https://docs.anthropic.com/en/docs/claude-code/overview
