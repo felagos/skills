@@ -105,7 +105,17 @@ When `jest.mock()`/`vi.mock()` is genuinely required, keep it as narrow as possi
 
 Never mock the component under test, and never mock its child components either — render them for real (e.g. with Testing Library's `render()`) so the test exercises actual markup, props flow, and conditional rendering. A test that mocks a component out and just checks it "was called with the right props" doesn't catch rendering bugs, so it isn't really testing the component.
 
-Mock the *dependencies* the component reaches out to instead: API clients, data-fetching hooks, routers, browser APIs (`localStorage`, `IntersectionObserver`, etc.), timers. Everything that's actually UI stays real.
+Mock the *dependencies* the component reaches out to instead: API clients, routers, browser APIs (`localStorage`, `IntersectionObserver`, etc.), timers. Everything that's actually UI — including the custom hooks a component uses — stays real.
+
+This extends to custom hooks the component imports: don't mock the hook itself either. A hook usually just wraps some lower-level dependency (an API client, `localStorage`, a context) — mock *that* dependency and let the hook's own logic run for real. Mocking the hook directly skips exactly the integration between the hook and the component that the test is supposed to catch (loading states, error states, how the hook's return value maps to what's rendered).
+
+```tsx
+// ❌ Don't: mocking the hook skips the integration between hook and component
+jest.mock('./useUser', () => ({ useUser: () => ({ data: { name: 'Ada' }, loading: false }) }));
+
+// ✅ Do: mock the dependency the hook itself calls, let the hook run for real
+jest.spyOn(apiClient, 'fetchUser').mockResolvedValue({ id: 1, name: 'Ada' });
+```
 
 ```tsx
 // ❌ Don't: mocking the component defeats the point of rendering it
