@@ -124,6 +124,22 @@ describe('UserProfile', () => {
 
 The one exception is a component that's expensive or unstable to render and isn't the subject of the current test (e.g. a heavy third-party chart or map widget nested deep in the tree) — mocking that specific child is fine as long as the component actually under test still renders for real, and the exception is left as a short comment.
 
+### Query with `screen`, not `container`
+
+Always call `getBy*`/`queryBy*`/`findBy*` on `screen`, never on the `container` returned by `render()`:
+
+```tsx
+// ❌ Don't
+const { container } = render(<UserProfile userId={1} />);
+expect(container.querySelector('.user-name')).toHaveTextContent('Ada');
+
+// ✅ Do
+render(<UserProfile userId={1} />);
+expect(screen.getByText('Ada')).toBeInTheDocument();
+```
+
+`screen` queries the whole document rather than a detached subtree, doesn't need `render()`'s return value threaded through the test, and its error messages print the full accessible DOM tree, which is what actually helps when a query fails. `container` is reserved for the rare case a query genuinely can't express what's needed (e.g. asserting on a raw CSS class or inline style) — reach for it only then, and prefer `container.querySelector` over `getByTestId` even in that case only if there's truly no accessible role/text/label to query by.
+
 ## Cleanup: afterEach
 
 Every file with a `beforeEach` that creates mocks needs a matching `afterEach`:
