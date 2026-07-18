@@ -101,6 +101,29 @@ beforeEach(() => {
 
 When `jest.mock()`/`vi.mock()` is genuinely required, keep it as narrow as possible (mock only the specific export needed, not the whole module if avoidable) and say in a short comment why `spyOn` wasn't an option — that comment is what tells the next person this wasn't a default choice.
 
+### Components are rendered, not mocked
+
+Never mock the component under test, and never mock its child components either — render them for real (e.g. with Testing Library's `render()`) so the test exercises actual markup, props flow, and conditional rendering. A test that mocks a component out and just checks it "was called with the right props" doesn't catch rendering bugs, so it isn't really testing the component.
+
+Mock the *dependencies* the component reaches out to instead: API clients, data-fetching hooks, routers, browser APIs (`localStorage`, `IntersectionObserver`, etc.), timers. Everything that's actually UI stays real.
+
+```tsx
+// ❌ Don't: mocking the component defeats the point of rendering it
+jest.mock('./UserCard', () => () => <div>mocked</div>);
+
+// ✅ Do: render the real component, mock what it depends on
+jest.spyOn(apiClient, 'fetchUser').mockResolvedValue({ id: 1, name: 'Ada' });
+
+describe('UserProfile', () => {
+  it('should show the user name once loaded', async () => {
+    render(<UserProfile userId={1} />);
+    expect(await screen.findByText('Ada')).toBeInTheDocument();
+  });
+});
+```
+
+The one exception is a component that's expensive or unstable to render and isn't the subject of the current test (e.g. a heavy third-party chart or map widget nested deep in the tree) — mocking that specific child is fine as long as the component actually under test still renders for real, and the exception is left as a short comment.
+
 ## Cleanup: afterEach
 
 Every file with a `beforeEach` that creates mocks needs a matching `afterEach`:
