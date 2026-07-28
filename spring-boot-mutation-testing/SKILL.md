@@ -60,7 +60,7 @@ pitest {
 }
 ```
 
-Ver `references/build-gradle-examples.md` para un bloque `pitest {}` completo y comentado con todas las opciones relevantes descritas en los pasos siguientes.
+Ver `./build-gradle-examples.md` para un bloque `pitest {}` completo y comentado con todas las opciones relevantes descritas en los pasos siguientes.
 
 ## Paso 3: Acotar qué se muta y qué tests corren
 
@@ -90,10 +90,10 @@ pitest genera en `build/reports/pitest/<timestamp>/`:
 - `index.html` — reporte navegable por paquete y clase, con el código fuente coloreado mostrando cada mutante y su estado.
 - `mutations.xml` — el mismo dato en formato máquina, útil para resumir por consola o integrarlo en otra herramienta.
 
-Usa `scripts/summarize_mutations.py` sobre el `mutations.xml` más reciente para obtener un resumen por clase (mutantes generados, matados, sobrevivientes, sin cobertura, y el mutation score) sin tener que abrir el HTML clase por clase:
+Usa `./summarize_mutations.py` sobre el `mutations.xml` más reciente para obtener un resumen por clase (mutantes generados, matados, sobrevivientes, sin cobertura, y el mutation score) sin tener que abrir el HTML clase por clase:
 
 ```bash
-python3 scripts/summarize_mutations.py build/reports/pitest/*/mutations.xml
+python3 ./summarize_mutations.py build/reports/pitest/*/mutations.xml
 ```
 
 Al presentar los resultados al usuario, prioriza las clases con más mutantes **SURVIVED** (sobrevivientes) sobre el mutation score global — un score global alto puede esconder una clase crítica de lógica de negocio con mala cobertura real, y ese es justamente el tipo de cosa que este tipo de análisis está pensado para exponer.
@@ -109,7 +109,7 @@ pitest {
 }
 ```
 
-Para acelerar corridas repetidas en CI, considera activar análisis incremental con `historyInputLocation`/`historyOutputLocation` apuntando a un archivo cacheado entre builds (ver `references/build-gradle-examples.md`), así pitest solo re-analiza mutantes afectados por cambios desde la última corrida.
+Para acelerar corridas repetidas en CI, considera activar análisis incremental con `historyInputLocation`/`historyOutputLocation` apuntando a un archivo cacheado entre builds (ver `./build-gradle-examples.md`), así pitest solo re-analiza mutantes afectados por cambios desde la última corrida.
 
 ## Problemas comunes
 
