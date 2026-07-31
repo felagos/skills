@@ -225,55 +225,7 @@ describe('UserService', () => {
 });
 ```
 
-The same file in a Vitest project — identical structure, only the namespace and import change:
-
-```ts
-import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
-import { UserService } from './user-service';
-import { apiClient } from './api-client';
-
-describe('UserService', () => {
-  let service: UserService;
-
-  beforeEach(() => {
-    service = new UserService();
-    vi.spyOn(apiClient, 'get').mockResolvedValue({ id: 1, name: 'Ada' });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
-  });
-
-  describe('getUser', () => {
-    it('should return the user when the id exists', async () => {
-      const user = await service.getUser(1);
-      expect(user).toEqual({ id: 1, name: 'Ada' });
-    });
-
-    it('should throw when the api call fails', async () => {
-      vi.spyOn(apiClient, 'get').mockRejectedValue(new Error('network error'));
-      await expect(service.getUser(1)).rejects.toThrow('network error');
-    });
-  });
-
-  describe('scheduleRefresh', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    it('should call refresh after the configured delay', () => {
-      const refreshSpy = vi.spyOn(service, 'refresh').mockImplementation(() => {});
-      service.scheduleRefresh(1000);
-      vi.advanceTimersByTime(1000);
-      expect(refreshSpy).toHaveBeenCalledTimes(1);
-    });
-  });
-});
-```
+In a Vitest project, this is the same structure with only the namespace and import swapped (`vi.*` instead of `jest.*`, plus the explicit `vitest` import) — see the Step 0 table above for the full mapping.
 
 ## Naming and location
 

@@ -217,7 +217,7 @@ log.info("Created product {}", product.id());
 
 ---
 
-## 4. application.properties — datasource + JPA
+## 4. application.properties — datasource
 
 Fill in `spring.datasource.*` based on the database chosen in §0. H2 example:
 
@@ -230,18 +230,18 @@ spring.datasource.driverClassName=org.h2.Driver
 spring.datasource.username=sa
 spring.datasource.password=
 
-# JPA / Hibernate
-spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
-spring.jpa.hibernate.ddl-auto=create-drop
-spring.jpa.show-sql=false
-
 spring.application.name=My Spring Boot App
 ```
 
-For PostgreSQL/MySQL: use the real JDBC URL/credentials, the matching dialect, and prefer
-`spring.jpa.hibernate.ddl-auto=validate` (with a schema migration tool) over `create-drop`
-once data needs to persist across restarts — flag this to the user rather than silently
-using `create-drop` in a non-demo context.
+For PostgreSQL/MySQL: use the real JDBC URL/credentials and the matching dialect.
+
+**`ddl-auto` and schema ownership live in the `spring-data-jpa-claude-code` skill (§1-§2)**,
+not here — it owns `schema.sql` and the `ddl-auto=none` vs `create-drop` decision, since
+combining `schema.sql` with auto-DDL causes a startup collision. When that skill also
+applies to the task (the normal case for a full REST + JPA feature), defer to it entirely
+for this setting. Only if `spring-data-jpa-claude-code` isn't in play (e.g. no persistence
+layer yet) fall back to `spring.jpa.hibernate.ddl-auto=create-drop` for a quick H2 demo, and
+say so explicitly rather than leaving it unset.
 
 ---
 
