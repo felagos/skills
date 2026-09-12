@@ -1,6 +1,6 @@
 ---
 name: react-component-scaffold
-description: Standardizes the creation of React/TypeScript components with a fixed folder structure (component folder containing ComponentName.tsx, ComponentName.module.css or .module.scss, and an index.ts barrel export, plus an optional test file), and standardizes scaffolding whole feature folders (components/hooks/services/types/index) for horizontal scaling of a frontend codebase. Use this skill whenever the user asks to create, scaffold, or add a new React component, a new UI component, a new "componente", a new feature/module folder, or mentions wanting components or features organized "each in its own folder", "horizontal scaling", "escalamiento horizontal", or a feature-based/domain-based folder structure — even if they don't explicitly ask for a skill or mention file structure. Also use when the user asks to convert an existing loose component (a lone .tsx file, or a component embedded inline in another file) into this folder convention.
+description: Standardizes the creation of React/TypeScript components with a fixed folder structure (component folder containing ComponentName.tsx, ComponentName.module.scss, and an index.ts barrel export, plus an optional test file), and standardizes scaffolding whole feature folders (components/pages/services/hooks/types/index, grouped by use case under features/, plus a shared/ folder for anything transversal) for horizontal scaling of a frontend codebase. Use this skill whenever the user asks to create, scaffold, or add a new React component, a new UI component, a new "componente", a new feature/module folder, or mentions wanting components or features organized "each in its own folder", "horizontal scaling", "escalamiento horizontal", or a feature-based/domain-based folder structure — even if they don't explicitly ask for a skill or mention file structure. Also use when the user asks to convert an existing loose component (a lone .tsx file, or a component embedded inline in another file) into this folder convention.
 ---
 
 # React Component Scaffold
@@ -12,21 +12,21 @@ This skill encodes a team convention for React/TypeScript components: **every co
 ```
 ComponentName/
 ├── ComponentName.tsx           # the component itself
-├── ComponentName.module.css    # or .module.scss — scoped styles
+├── ComponentName.module.scss   # scoped styles — always .module.scss
 ├── index.ts                    # barrel export, always present
 └── ComponentName.test.tsx      # only when tests are requested
 ```
 
 Key rules:
 - The folder name and the component name are the same PascalCase identifier (e.g. `UserCard/UserCard.tsx`, not `user-card/UserCard.tsx`).
-- Styles are always CSS Modules, imported as `styles` from `./ComponentName.module.{css|scss}`. Ask the user (or check the surrounding project for `.module.scss` vs `.module.css` precedent) if it isn't already clear which one this project uses.
+- Styles are always CSS Modules in `.module.scss`, imported as `styles` from `./ComponentName.module.scss`. Every component gets its own folder with its own style file — no shared/global stylesheet per component.
 - `index.ts` always exists, even for a single component, so imports elsewhere in the app can do `import { ComponentName } from '@/components/ComponentName'` rather than reaching into the file directly. It re-exports the component and its props type.
 - Props are typed with an interface named `ComponentNameProps`, declared right above the component.
 
 ## Component template
 
 ```tsx
-import styles from './ComponentName.module.css'
+import styles from './ComponentName.module.scss'
 
 interface ComponentNameProps {}
 
@@ -46,7 +46,7 @@ export type { ComponentNameProps } from './ComponentName'
 
 ## Style module template
 
-```css
+```scss
 .container {
 }
 ```
@@ -73,11 +73,11 @@ For a single component, it's fine to just write the files directly following the
 For scaffolding one or more components mechanically (e.g. "create components for Header, Sidebar, and Footer"), use the bundled script instead of hand-writing each file — it guarantees consistent naming and saves you from typos in the boilerplate:
 
 ```bash
-python3 scripts/create_component.py ComponentName --style css --dir path/to/components
+python3 scripts/create_component.py ComponentName --dir path/to/components
 ```
 
 Options:
-- `--style css|scss` — which stylesheet extension to use (default `css`). Match whatever the rest of the project uses.
+- `--style css|scss` — which stylesheet extension to use (default `scss`, the team standard).
 - `--test` — also generate `ComponentName.test.tsx`.
 - `--dir path` — parent directory to create the component folder in (default: current directory).
 - `--force` — overwrite an existing non-empty folder.
@@ -88,32 +88,35 @@ After scaffolding, fill in the actual props interface, JSX, and any needed style
 
 ## Scaling horizontally: feature folders
 
-As a project grows, don't keep piling components into one flat `components/` folder or nesting things deeper — instead, group by **feature/domain**. Each feature is a self-contained module that sits *next to* the others, so adding a new feature never requires touching existing ones:
+As a project grows, don't keep piling components into one flat `components/` folder or nesting things deeper — instead, group by **use case** under `features/`, and keep everything cross-cutting under `shared/`:
 
 ```
 src/
-├── components/              # shared, generic UI (Button, Card, Modal...)
 ├── features/
-│   ├── auth/
-│   │   ├── components/      # components local to this feature
+│   ├── auth/                 # one folder per use case
+│   │   ├── components/       # components local to this use case
 │   │   │   └── LoginForm/
-│   │   ├── hooks/           # useAuth, useLogin...
-│   │   ├── services/        # API calls specific to auth
+│   │   ├── pages/            # route-level screens for this use case
+│   │   ├── services/         # API calls specific to auth
+│   │   ├── hooks/            # useAuth, useLogin...
 │   │   ├── types.ts
-│   │   └── index.ts         # the ONLY file other code may import from
+│   │   └── index.ts          # the ONLY file other code may import from
 │   ├── dashboard/
 │   │   └── ... (same shape)
 │   └── billing/
 │       └── ... (same shape)
-├── hooks/                    # hooks shared across features
-├── services/                 # base API client / fetch config
-└── types/                    # global/shared types
+└── shared/                   # everything transversal to the project
+    ├── components/           # generic UI (Button, Card, Modal...)
+    ├── services/              # base API client / fetch config
+    ├── hooks/                 # hooks shared across features
+    └── types/                 # global/shared types
 ```
 
 Rules that make this scale:
+- **Group by use case, not by layer.** Each subfolder of `features/` is one use case (`auth`, `billing`, `dashboard`...), and each contains its own `components/`, `pages/`, `services/`, `hooks/`, and `types`.
 - **Features never import from each other's internals.** `dashboard/` may only import from `features/billing` (the barrel export in its `index.ts`), never from `features/billing/components/SomeThing/SomeThing.tsx` directly. This keeps every feature swappable or extractable later.
-- **`components/` at the root stays small and generic.** Anything domain-specific belongs inside its feature's own `components/`, not the shared one — otherwise the shared folder becomes a dumping ground as the app grows.
-- **Each feature reuses the same component convention** described above — a feature's `components/SomeThing/` folder is scaffolded exactly like a top-level component.
+- **`shared/` holds only what's transversal to the whole project** — generic UI, the base API client, cross-feature hooks, global types. Anything domain-specific belongs inside its feature's own folder, not `shared/` — otherwise it becomes a dumping ground as the app grows. `shared/` has no `pages/`, since pages always belong to a specific use case.
+- **Each feature reuses the same component convention** described above — a `components/SomeThing/` folder (in a feature or in `shared/`) is scaffolded exactly like a top-level component, with its own `SomeThing.module.scss`.
 
 ### Generating a feature folder
 
@@ -127,6 +130,7 @@ This creates:
 ```
 featureName/
 ├── components/           # empty (.gitkeep) unless --with-component is passed
+├── pages/                # empty (.gitkeep) — route-level screens for this use case
 ├── hooks/
 │   └── useFeatureName.ts # starter hook with useState scaffolding
 ├── services/
@@ -137,9 +141,16 @@ featureName/
 
 Options:
 - `--with-component` — also scaffold an initial component inside `components/FeatureName/`, following the exact same convention as `create_component.py`, and wire it into the feature's `index.ts`.
-- `--style css|scss` — stylesheet extension for that initial component (default `css`).
+- `--style css|scss` — stylesheet extension for that initial component (default `scss`).
 - `--dir path` — parent directory to create the feature folder in (default: `features`).
+- `--shared` — scaffold `shared/` instead of a use-case feature: no `pages/` subfolder.
 - `--force` — overwrite an existing non-empty folder.
+
+To scaffold the project's `shared/` folder (once, at project setup):
+
+```bash
+python3 scripts/create_feature.py shared --shared --dir src
+```
 
 The script normalizes the feature name to kebab-case for the folder (`userProfile` → `user-profile`) and to PascalCase/camelCase for identifiers inside the files, so casing stays consistent automatically.
 

@@ -69,7 +69,7 @@ def to_pascal_case(name: str) -> str:
 def main():
     parser = argparse.ArgumentParser(description="Scaffold a standardized React component folder.")
     parser.add_argument("name", help="Component name, e.g. UserCard (will be coerced to PascalCase)")
-    parser.add_argument("--style", choices=["css", "scss"], default="css", help="Stylesheet extension (default: css)")
+    parser.add_argument("--style", choices=["css", "scss"], default="scss", help="Stylesheet extension (default: scss)")
     parser.add_argument("--test", action="store_true", help="Also generate a ComponentName.test.tsx file")
     parser.add_argument("--dir", default=".", help="Parent directory to create the component folder in (default: current directory)")
     parser.add_argument("--force", action="store_true", help="Overwrite files if the component folder already exists")

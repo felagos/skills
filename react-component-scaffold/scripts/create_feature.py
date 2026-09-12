@@ -8,8 +8,9 @@ features/featureName/
 ├── components/            # components local to this feature
 │   └── FeatureName/       # optional initial component, same convention as create_component.py
 │       ├── FeatureName.tsx
-│       ├── FeatureName.module.css
+│       ├── FeatureName.module.scss
 │       └── index.ts
+├── pages/
 ├── hooks/
 │   └── useFeatureName.ts
 ├── services/
@@ -18,12 +19,13 @@ features/featureName/
 └── index.ts                # the ONLY file other features/app code are allowed to import from
 
 Usage:
-    python create_feature.py featureName [--style css|scss] [--with-component] [--dir path/to/features] [--force]
+    python create_feature.py featureName [--style css|scss] [--with-component] [--dir path/to/features] [--shared] [--force]
 
 Examples:
     python create_feature.py billing
-    python create_feature.py userProfile --with-component --style scss
+    python create_feature.py userProfile --with-component
     python create_feature.py notifications --dir src/features
+    python create_feature.py shared --shared --dir src   # scaffolds src/shared/ (no pages/)
 """
 
 import argparse
@@ -120,9 +122,10 @@ def write_file(path, content):
 def main():
     parser = argparse.ArgumentParser(description="Scaffold a feature folder for horizontal scaling.")
     parser.add_argument("name", help="Feature name, e.g. billing or user-profile")
-    parser.add_argument("--style", choices=["css", "scss"], default="css", help="Stylesheet extension for the optional initial component (default: css)")
+    parser.add_argument("--style", choices=["css", "scss"], default="scss", help="Stylesheet extension for the optional initial component (default: scss)")
     parser.add_argument("--with-component", action="store_true", help="Also scaffold an initial component (components/FeatureName/) named after the feature")
     parser.add_argument("--dir", default="features", help="Parent directory to create the feature folder in (default: features)")
+    parser.add_argument("--shared", action="store_true", help="Scaffold the shared/ folder instead of a feature: no pages/ subfolder, no barrel index re-exporting a use case")
     parser.add_argument("--force", action="store_true", help="Overwrite files if the feature folder already exists")
     args = parser.parse_args()
 
@@ -141,8 +144,11 @@ def main():
             print(f"Error: '{feature_dir}' already exists and is not empty. Use --force to overwrite.", file=sys.stderr)
             sys.exit(1)
 
-    for sub in ("components", "hooks", "services"):
+    subdirs = ("components", "hooks", "services") if args.shared else ("components", "pages", "hooks", "services")
+    for sub in subdirs:
         os.makedirs(os.path.join(feature_dir, sub), exist_ok=True)
+    if not args.shared:
+        write_file(os.path.join(feature_dir, "pages", ".gitkeep"), "")
 
     write_file(os.path.join(feature_dir, "types.ts"), TYPES_TEMPLATE.format(feature_pascal=feature_pascal))
     write_file(
