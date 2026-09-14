@@ -2,7 +2,8 @@
 
 Full runnable reference for a `Product` resource: domain → application → infrastructure
 (web + persistence) → tests. Assumes Gradle + Log4j2 + H2 (swap the datasource/driver per
-the answer from SKILL.md §0 if the user picked Postgres/MySQL instead).
+the answer from SKILL.md §0 if the user picked Postgres/MySQL instead), with
+`application.properties` and `schema.sql` exactly as in SKILL.md §4–§5.
 
 ```
 my-spring-app/
@@ -25,6 +26,7 @@ my-spring-app/
 │       └── mapper/ProductPersistenceMapper.java
 ├── src/main/resources/
 │   ├── application.properties
+│   ├── schema.sql
 │   └── log4j2.xml
 └── src/test/java/...
 ```
@@ -41,9 +43,11 @@ my-spring-app/
 package com.example.domain.model;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
 
 // record: immutable value object
-public record Product(Long id, String name, BigDecimal price, Long categoryId) {}
+public record Product(UUID id, String name, BigDecimal price, UUID categoryId, Instant createdAt) {}
 ```
 
 ### Domain model (class for mutable aggregate)
@@ -51,28 +55,29 @@ public record Product(Long id, String name, BigDecimal price, Long categoryId) {
 ```java
 package com.example.domain.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 // class: aggregate with behavior
 public class Order {
-    private Long id;
+    private UUID id;
     private OrderStatus status;
     private List<OrderLine> lines;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
-    public Order(Long id, OrderStatus status, List<OrderLine> lines, LocalDateTime createdAt) {
+    public Order(UUID id, OrderStatus status, List<OrderLine> lines, Instant createdAt) {
         this.id        = id;
         this.status    = status;
         this.lines     = new ArrayList<>(lines);
         this.createdAt = createdAt;
     }
 
-    public Long getId()                 { return id; }
+    public UUID getId()                 { return id; }
     public OrderStatus getStatus()      { return status; }
     public List<OrderLine> getLines()   { return List.copyOf(lines); }
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    public Instant getCreatedAt()       { return createdAt; }
 
     public void confirm() {
         if (status != OrderStatus.PENDING)
@@ -110,13 +115,14 @@ package com.example.domain.repository;
 import com.example.domain.model.Product;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface ProductRepository {
     List<Product> findAll();
-    Optional<Product> findById(Long id);
+    Optional<Product> findById(UUID id);
     Product save(Product product);
-    void deleteById(Long id);
-    boolean existsById(Long id);
+    void deleteById(UUID id);
+    boolean existsById(UUID id);
 }
 ```
 
@@ -150,6 +156,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
 
 @Component
 public class CreateProductUseCase {
@@ -163,8 +171,9 @@ public class CreateProductUseCase {
     }
 
     @Transactional
-    public Product execute(String name, BigDecimal price, Long categoryId) {
-        var product = new Product(null, name, price, categoryId);
+    public Product execute(String name, BigDecimal price, UUID categoryId) {
+        // UUID generated in code (not IDENTITY) so JDBC batching stays enabled
+        var product = new Product(UUID.randomUUID(), name, price, categoryId, Instant.now());
         var saved = productRepository.save(product);
         log.info("Created product {}", saved.id());
         return saved;
@@ -183,6 +192,7 @@ import com.example.domain.repository.ProductRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class FindProductUseCase {
@@ -199,7 +209,7 @@ public class FindProductUseCase {
     }
 
     @Transactional(readOnly = true)
-    public Product findById(Long id) {
+    public Product findById(UUID id) {
         return productRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
     }
@@ -215,6 +225,7 @@ import com.example.application.exception.ResourceNotFoundException;
 import com.example.domain.repository.ProductRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 
 @Component
 public class DeleteProductUseCase {
@@ -226,7 +237,7 @@ public class DeleteProductUseCase {
     }
 
     @Transactional
-    public void execute(Long id) {
+    public void execute(UUID id) {
         if (!productRepository.existsById(id))
             throw new ResourceNotFoundException("Product not found: " + id);
         productRepository.deleteById(id);
@@ -247,11 +258,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public record CreateProductRequest(
     @NotBlank(message = "Name is required") String name,
     @Positive(message = "Price must be positive") BigDecimal price,
-    @NotNull(message = "Category ID is required") Long categoryId
+    @NotNull(message = "Category ID is required") UUID categoryId
 ) {}
 ```
 
@@ -259,26 +271,25 @@ public record CreateProductRequest(
 package com.example.infrastructure.web.dto;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
-public record ProductResponse(Long id, String name, BigDecimal price) {}
+public record ProductResponse(UUID id, String name, BigDecimal price) {}
 ```
 
-### WebMapper (DTO ↔ domain)
+### WebMapper (domain → DTO)
+
+The request side needs no mapper method: the controller passes the request's fields
+straight to the use case, which owns id/timestamp generation.
 
 ```java
 package com.example.infrastructure.web.mapper;
 
 import com.example.domain.model.Product;
-import com.example.infrastructure.web.dto.CreateProductRequest;
 import com.example.infrastructure.web.dto.ProductResponse;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ProductWebMapper {
-
-    public Product toDomain(CreateProductRequest request) {
-        return new Product(null, request.name(), request.price(), request.categoryId());
-    }
 
     public ProductResponse toResponse(Product product) {
         return new ProductResponse(product.id(), product.name(), product.price());
@@ -300,8 +311,15 @@ import com.example.infrastructure.web.mapper.ProductWebMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/products")
@@ -332,7 +350,7 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
+    public ResponseEntity<ProductResponse> getById(@PathVariable UUID id) {
         var product = findProductUseCase.findById(id);
         return ResponseEntity.ok(mapper.toResponse(product));
     }
@@ -348,7 +366,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
         deleteProductUseCase.execute(id);
         return ResponseEntity.noContent().build();
     }
@@ -412,21 +430,26 @@ public class GlobalExceptionHandler {
 
 ## §4. Infrastructure layer — persistence adapter
 
-### JPA Entity
+### JPA Entity (no setters, protected constructor, factories — SKILL.md §9)
 
 ```java
 package com.example.infrastructure.persistence.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "products")
 public class ProductEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(columnDefinition = "CHAR(36)", updatable = false, nullable = false)
+    private UUID id;
 
     @Column(nullable = false)
     private String name;
@@ -434,20 +457,38 @@ public class ProductEntity {
     @Column(nullable = false)
     private BigDecimal price;
 
-    @Column(name = "category_id", nullable = false)
-    private Long categoryId;
+    @Column(name = "category_id")
+    private UUID categoryId;
 
-    public ProductEntity() {}
+    @Column(updatable = false, nullable = false)
+    private Instant createdAt;
 
-    public Long getId()          { return id; }
-    public String getName()      { return name; }
-    public BigDecimal getPrice() { return price; }
-    public Long getCategoryId()  { return categoryId; }
+    // Protected no-arg constructor (JPA requirement, hidden from app code)
+    protected ProductEntity() {}
 
-    public void setId(Long id)                 { this.id = id; }
-    public void setName(String name)           { this.name = name; }
-    public void setPrice(BigDecimal price)     { this.price = price; }
-    public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
+    // Static factory for BRAND NEW products — generates id + timestamp
+    public static ProductEntity create(String name, BigDecimal price, UUID categoryId) {
+        return reconstitute(UUID.randomUUID(), name, price, categoryId, Instant.now());
+    }
+
+    // Used ONLY by ProductPersistenceMapper to rebuild an entity from domain data,
+    // preserving the original id/timestamp.
+    public static ProductEntity reconstitute(
+            UUID id, String name, BigDecimal price, UUID categoryId, Instant createdAt) {
+        var product = new ProductEntity();
+        product.id = id;
+        product.name = name;
+        product.price = price;
+        product.categoryId = categoryId;
+        product.createdAt = createdAt;
+        return product;
+    }
+
+    public UUID getId()           { return id; }
+    public String getName()       { return name; }
+    public BigDecimal getPrice()  { return price; }
+    public UUID getCategoryId()   { return categoryId; }
+    public Instant getCreatedAt() { return createdAt; }
 }
 ```
 
@@ -458,9 +499,10 @@ package com.example.infrastructure.persistence.repository;
 
 import com.example.infrastructure.persistence.entity.ProductEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.UUID;
 
 // package-private: never inject outside this package
-interface ProductJpaRepository extends JpaRepository<ProductEntity, Long> {}
+interface ProductJpaRepository extends JpaRepository<ProductEntity, UUID> {}
 ```
 
 ### PersistenceMapper (domain ↔ entity)
@@ -480,17 +522,21 @@ public class ProductPersistenceMapper {
             entity.getId(),
             entity.getName(),
             entity.getPrice(),
-            entity.getCategoryId()
+            entity.getCategoryId(),
+            entity.getCreatedAt()
         );
     }
 
     public ProductEntity toEntity(Product domain) {
-        var entity = new ProductEntity();
-        entity.setId(domain.id());
-        entity.setName(domain.name());
-        entity.setPrice(domain.price());
-        entity.setCategoryId(domain.categoryId());
-        return entity;
+        // Always reconstitute(): no setters exist, and a bare `new ProductEntity()`
+        // would be all nulls.
+        return ProductEntity.reconstitute(
+            domain.id(),
+            domain.name(),
+            domain.price(),
+            domain.categoryId(),
+            domain.createdAt()
+        );
     }
 }
 ```
@@ -506,6 +552,7 @@ import com.example.infrastructure.persistence.mapper.ProductPersistenceMapper;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class ProductRepositoryAdapter implements ProductRepository {
@@ -528,7 +575,7 @@ public class ProductRepositoryAdapter implements ProductRepository {
     }
 
     @Override
-    public Optional<Product> findById(Long id) {
+    public Optional<Product> findById(UUID id) {
         return jpaRepository.findById(id).map(mapper::toDomain);
     }
 
@@ -540,12 +587,12 @@ public class ProductRepositoryAdapter implements ProductRepository {
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }
 
     @Override
-    public boolean existsById(Long id) {
+    public boolean existsById(UUID id) {
         return jpaRepository.existsById(id);
     }
 }
@@ -583,9 +630,14 @@ import com.example.domain.model.Product;
 import com.example.domain.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class CreateProductUseCaseTest {
 
@@ -594,12 +646,13 @@ class CreateProductUseCaseTest {
 
     @Test
     void shouldSaveAndReturnProduct() {
-        var expected = new Product(1L, "Widget", new BigDecimal("9.99"), 1L);
+        var categoryId = UUID.randomUUID();
+        var expected = new Product(UUID.randomUUID(), "Widget", new BigDecimal("9.99"), categoryId, Instant.now());
         when(repository.save(any())).thenReturn(expected);
 
-        var result = useCase.execute("Widget", new BigDecimal("9.99"), 1L);
+        var result = useCase.execute("Widget", new BigDecimal("9.99"), categoryId);
 
-        assertThat(result.id()).isEqualTo(1L);
+        assertThat(result.id()).isEqualTo(expected.id());
         verify(repository).save(any(Product.class));
     }
 }
@@ -619,9 +672,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.util.UUID;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -632,7 +687,7 @@ class ProductControllerIntegrationTest {
 
     @Test
     void shouldCreateAndReturnProduct() throws Exception {
-        var request = new CreateProductRequest("Widget", BigDecimal.valueOf(9.99), 1L);
+        var request = new CreateProductRequest("Widget", BigDecimal.valueOf(9.99), UUID.randomUUID());
 
         mockMvc.perform(post("/api/v1/products")
                 .contentType(MediaType.APPLICATION_JSON)

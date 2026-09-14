@@ -274,21 +274,31 @@ interface OrderJpaRepository extends JpaRepository<OrderEntity, UUID> {
 
     boolean existsByIdAndStatus(UUID id, OrderStatus status);
 
+    // N+1 FIX: override the inherited findAll() so it loads items in the same query
+    @Override
+    @EntityGraph(attributePaths = {"items"})
+    List<OrderEntity> findAll();
+
+    // PAGED: deliberately NO fetch join. Fetch-joining a collection with Pageable makes
+    // Hibernate load every row and paginate in memory (warning HHH90003004). Items are
+    // loaded by default_batch_fetch_size instead (1 + ceil(N/50) queries, not 1 + N).
     Page<OrderEntity> findByStatus(OrderStatus status, Pageable pageable);
 
-    // N+1 FIX: JOIN FETCH for a single entity
-    @Query("SELECT o FROM OrderEntity o JOIN FETCH o.items WHERE o.id = :id")
+    // N+1 FIX: LEFT JOIN FETCH for a single entity. LEFT, not inner: an inner join
+    // drops orders that have no items, so findById would return empty for them.
+    @Query("SELECT o FROM OrderEntity o LEFT JOIN FETCH o.items WHERE o.id = :id")
     Optional<OrderEntity> findByIdWithItems(@Param("id") UUID id);
 
-    // N+1 FIX: JOIN FETCH + DISTINCT for a list (avoids duplicate rows from the join)
-    @Query("SELECT DISTINCT o FROM OrderEntity o JOIN FETCH o.items WHERE o.status = :status")
+    // N+1 FIX: LEFT JOIN FETCH + DISTINCT for a list (avoids duplicate rows from the join)
+    @Query("SELECT DISTINCT o FROM OrderEntity o LEFT JOIN FETCH o.items WHERE o.status = :status")
     List<OrderEntity> findByStatusWithItems(@Param("status") OrderStatus status);
 
     // N+1 FIX (alternative): @EntityGraph — cleaner than @Query for simple cases
     @EntityGraph(attributePaths = {"items"})
     List<OrderEntity> findByStatusAndCustomerEmail(OrderStatus status, String customerEmail);
 
-    // KEYSET pagination (O(1) vs O(N) for deep pages)
+    // KEYSET pagination (O(1) vs O(N) for deep pages). Paged too, so no fetch join —
+    // items come from default_batch_fetch_size, same as findByStatus(status, Pageable).
     @Query("""
         SELECT o FROM OrderEntity o
         WHERE o.status = :status
@@ -336,6 +346,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+// OrderPersistenceMapper.toDomain() walks getItems(), so EVERY read path below must fetch
+// items (LEFT JOIN FETCH, @EntityGraph, or default_batch_fetch_size when paged) or it is N+1.
 @Repository
 public class OrderRepositoryAdapter implements OrderRepository {
 
@@ -352,13 +364,10 @@ public class OrderRepositoryAdapter implements OrderRepository {
         return jpaRepository.findAll().stream().map(mapper::toDomain).toList();
     }
 
+    // Fetch strategy is a persistence detail: the domain port only has findById, and the
+    // adapter picks the fetching query. Never expose "findByIdWithItems" on the domain port.
     @Override
     public Optional<Order> findById(UUID id) {
-        return jpaRepository.findById(id).map(mapper::toDomain);
-    }
-
-    @Override
-    public Optional<Order> findByIdWithItems(UUID id) {
         return jpaRepository.findByIdWithItems(id).map(mapper::toDomain);
     }
 
@@ -412,10 +421,19 @@ for (var order : orders) {
     System.out.println(order.getItems().size());  // triggers N extra SELECTs
 }
 
-// FIX 1: JOIN FETCH (see findByStatusWithItems in §3)
-// FIX 2: @EntityGraph (see findByStatusAndCustomerEmail in §3)
+// FIX 1: LEFT JOIN FETCH (see findByStatusWithItems in §3) — unpaged only
+// FIX 2: @EntityGraph (see findAll / findByStatusAndCustomerEmail in §3) — unpaged only
+// FIX 3 (paged queries): batch fetching. Never fetch-join a collection together with
+// Pageable (Hibernate paginates in memory, HHH90003004). Instead, lazy collections are
+// initialized in batches: 1 query for the page + ceil(N/50) queries for items.
+//   Global (already in SKILL.md §4): spring.jpa.properties.hibernate.default_batch_fetch_size=50
+//   Per collection: @BatchSize(size = 50) on OrderEntity.items (org.hibernate.annotations.BatchSize)
+//
+// OSIV: Spring Boot enables open-in-view by default, which lets lazy loading run during
+// JSON serialization, outside the use-case transaction — N+1 still happens, just hidden.
+// SKILL.md §4 sets spring.jpa.open-in-view=false so it fails fast instead.
 
-// FIX 3: DTO/record projection when the query needs a COMPUTED value (SIZE, aggregates) —
+// FIX 4: DTO/record projection when the query needs a COMPUTED value (SIZE, aggregates) —
 // interface projections (OrderSummaryProjection in §3) can't do this cleanly.
 public record OrderSummary(UUID id, String customerEmail, long itemCount) {}
 ```
@@ -578,15 +596,26 @@ directly, switch that id strategy to `GenerationType.UUID` too.
 package com.example.infrastructure.persistence.repository;
 
 import com.example.infrastructure.persistence.entity.OrderEntity;
+import com.example.infrastructure.persistence.entity.OrderItemEntity;
 import com.example.infrastructure.persistence.entity.OrderStatus;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.data.domain.PageRequest;
+import java.math.BigDecimal;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest  // Only loads the JPA context, no web/service layer
+// Only loads the JPA context, no web/service layer. Statistics on so tests can count SQL
+// statements; batch fetch size set here too so the test doesn't depend on application.properties.
+@DataJpaTest(properties = {
+    "spring.jpa.properties.hibernate.generate_statistics=true",
+    "spring.jpa.properties.hibernate.default_batch_fetch_size=50"
+})
 class OrderJpaRepositoryTest {
 
     @Autowired private OrderJpaRepository repository;
@@ -607,18 +636,44 @@ class OrderJpaRepositoryTest {
     }
 
     @Test
-    void shouldLoadItemsWithJoinFetch() {
+    void shouldLoadItemsWithLeftJoinFetch() {
         var order = OrderEntity.create("alice@example.com");
-        var item = com.example.infrastructure.persistence.entity.OrderItemEntity
-            .create(java.util.UUID.randomUUID(), 2, java.math.BigDecimal.valueOf(19.99));
-        order.addItem(item);
+        order.addItem(OrderItemEntity.create(UUID.randomUUID(), 2, BigDecimal.valueOf(19.99)));
         em.persistAndFlush(order);
+
+        var emptyOrder = OrderEntity.create("bob@example.com");
+        em.persistAndFlush(emptyOrder);
 
         em.clear();  // clear persistence context to force a real DB query
 
         var loaded = repository.findByIdWithItems(order.getId()).orElseThrow();
-
         assertThat(loaded.getItems()).hasSize(1);
+
+        // LEFT JOIN FETCH: an order without items must still be found (inner join would drop it)
+        assertThat(repository.findByIdWithItems(emptyOrder.getId())).isPresent();
+    }
+
+    // N+1 guard: fails if the paged read path goes back to one items SELECT per order.
+    @Test
+    void pagedReadShouldNotTriggerNPlusOne() {
+        for (int i = 0; i < 3; i++) {
+            var order = OrderEntity.create("user" + i + "@example.com");
+            order.addItem(OrderItemEntity.create(UUID.randomUUID(), 1, BigDecimal.TEN));
+            em.persist(order);
+        }
+        em.flush();
+        em.clear();
+
+        Statistics stats = em.getEntityManager().getEntityManagerFactory()
+            .unwrap(SessionFactory.class).getStatistics();
+        stats.clear();
+
+        var page = repository.findByStatus(OrderStatus.PENDING, PageRequest.of(0, 10));
+        page.forEach(order -> order.getItems().size());  // touch the lazy collection, like the mapper does
+
+        // page SELECT (+ count SELECT when needed) + ONE batched items SELECT.
+        // Without default_batch_fetch_size this would be 1 + 3 = 4.
+        assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(3);
     }
 }
 ```
