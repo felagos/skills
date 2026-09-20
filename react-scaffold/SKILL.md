@@ -1,6 +1,6 @@
 ---
 name: react-scaffold
-description: Standardizes the creation of React/TypeScript components with a fixed folder structure (component folder containing ComponentName.tsx, ComponentName.module.scss, and an index.ts barrel export, plus an optional test file), and standardizes scaffolding whole feature folders (components/pages/services/hooks/types/index, grouped by use case under features/, plus a shared/ folder for anything transversal) for horizontal scaling of a frontend codebase. Use this skill whenever the user asks to create, scaffold, or add a new React component, a new UI component, a new "componente", a new feature/module folder, or mentions wanting components or features organized "each in its own folder", "horizontal scaling", "escalamiento horizontal", or a feature-based/domain-based folder structure — even if they don't explicitly ask for a skill or mention file structure. Also use when the user asks to convert an existing loose component (a lone .tsx file, or a component embedded inline in another file) into this folder convention.
+description: Standardizes the creation of React/TypeScript components with a fixed folder structure (component folder containing ComponentName.tsx, ComponentName.module.scss, and an index.ts barrel export, plus an optional test file), standardizes scaffolding whole feature folders (components/pages/services/hooks/types/index, grouped by use case under features/, plus a shared/ folder for anything transversal) for horizontal scaling of a frontend codebase, and — on demand — structures Jest/Vitest test files (.test.ts, .test.tsx, .spec.ts) with a consistent describe/test hierarchy and mock lifecycle. Use this skill whenever the user asks to create, scaffold, or add a new React component, a new UI component, a new "componente", a new feature/module folder, or mentions wanting components or features organized "each in its own folder", "horizontal scaling", "escalamiento horizontal", or a feature-based/domain-based folder structure — even if they don't explicitly ask for a skill or mention file structure. Also use when the user asks to convert an existing loose component (a lone .tsx file, or a component embedded inline in another file) into this folder convention, and whenever the user asks to write, organize, restructure, or review tests for a JS/TS project, wants test coverage for a function/class/component, asks how to set up mocks or spies, or mentions Jest/Vitest conventions.
 ---
 
 # React Component Scaffold
@@ -51,20 +51,26 @@ export type { ComponentNameProps } from './ComponentName'
 }
 ```
 
-## Test template (only when the user asks for tests)
+## Testing
+
+Tests are **on demand only**. Don't add a test file unless the user asks for one, or the project's existing components all have accompanying tests — scaffolding an empty, never-asked-for test file just adds noise.
+
+When tests *are* requested (writing new tests, adding coverage, restructuring or reviewing an existing test file, setting up mocks/spies), read [references/testing.md](references/testing.md) and follow it. That document is the full convention: Jest vs Vitest detection, the `describe`/`it` hierarchy, the `beforeEach`/`afterEach`/`afterAll` mock lifecycle, when `spyOn` beats `jest.mock()`, rendering real components and hooks instead of mocking them, and querying via `screen`. It applies to any JS/TS test in the project, not just component tests.
+
+For a component scaffolded by this skill, the test file is `ComponentName.test.tsx`, colocated inside the component's folder, and its top-level `describe` is the component name:
 
 ```tsx
 import { render, screen } from '@testing-library/react'
 import { ComponentName } from './ComponentName'
 
 describe('ComponentName', () => {
-  it('renders without crashing', () => {
-    render(<ComponentName />)
+  describe('rendering', () => {
+    it('should render the container when given no props', () => {
+      render(<ComponentName />)
+    })
   })
 })
 ```
-
-Don't add a test file unless the user asks for one, or the project's existing components all have accompanying tests — scaffolding an empty, never-asked-for test file just adds noise.
 
 ## How to generate a component
 

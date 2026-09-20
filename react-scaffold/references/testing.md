@@ -1,11 +1,6 @@
----
-name: jest-test-structure
-description: Organizes and writes test files (.test.ts, .test.js, .spec.ts, .spec.js) for JavaScript/TypeScript projects using a consistent describe/test hierarchy and mock lifecycle (beforeEach with spyOn, afterEach cleanup, afterAll timer cleanup). Works with both Jest and Vitest — detects which one the project actually uses and adapts syntax accordingly. Use this skill whenever the user asks to write, organize, restructure, or review test files for a JS/TS project, wants to add test coverage for a function/class/component, asks how to set up mocks or spies, or mentions Jest/Vitest test conventions — even if they don't explicitly say "skill" or "structure".
----
-
 # Jest / Vitest Test Structure
 
-A skill for structuring test files consistently across a JS/TS codebase, so any test file looks and behaves the same way regardless of who wrote it, what it's testing, or which runner the project uses.
+Reference for structuring test files consistently across a JS/TS codebase, so any test file looks and behaves the same way regardless of who wrote it, what it's testing, or which runner the project uses. Read this file only when tests are actually requested.
 
 ## Step 0: Detect the test runner
 
