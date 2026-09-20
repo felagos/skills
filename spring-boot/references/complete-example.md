@@ -2,8 +2,8 @@
 
 Full runnable reference for a `Product` resource: domain → application → infrastructure
 (web + persistence) → tests. Assumes Gradle + Log4j2 + H2 (swap the datasource/driver per
-the answer from SKILL.md §0 if the user picked Postgres/MySQL instead), with
-`application.properties` and `schema.sql` exactly as in SKILL.md §4–§5.
+the database the user chose if the user picked Postgres/MySQL instead), with
+`application.properties` and `schema.sql` exactly as in project-setup.md §4–§5.
 
 ```
 my-spring-app/
@@ -430,7 +430,7 @@ public class GlobalExceptionHandler {
 
 ## §4. Infrastructure layer — persistence adapter
 
-### JPA Entity (no setters, protected constructor, factories — SKILL.md §9)
+### JPA Entity (no setters, protected constructor, factories — conventions.md §9)
 
 ```java
 package com.example.infrastructure.persistence.entity;

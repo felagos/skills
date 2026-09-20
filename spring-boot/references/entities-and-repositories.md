@@ -426,12 +426,12 @@ for (var order : orders) {
 // FIX 3 (paged queries): batch fetching. Never fetch-join a collection together with
 // Pageable (Hibernate paginates in memory, HHH90003004). Instead, lazy collections are
 // initialized in batches: 1 query for the page + ceil(N/50) queries for items.
-//   Global (already in SKILL.md §4): spring.jpa.properties.hibernate.default_batch_fetch_size=50
+//   Global (already in project-setup.md §4): spring.jpa.properties.hibernate.default_batch_fetch_size=50
 //   Per collection: @BatchSize(size = 50) on OrderEntity.items (org.hibernate.annotations.BatchSize)
 //
 // OSIV: Spring Boot enables open-in-view by default, which lets lazy loading run during
 // JSON serialization, outside the use-case transaction — N+1 still happens, just hidden.
-// SKILL.md §4 sets spring.jpa.open-in-view=false so it fails fast instead.
+// project-setup.md §4 sets spring.jpa.open-in-view=false so it fails fast instead.
 
 // FIX 4: DTO/record projection when the query needs a COMPUTED value (SIZE, aggregates) —
 // interface projections (OrderSummaryProjection in §3) can't do this cleanly.
