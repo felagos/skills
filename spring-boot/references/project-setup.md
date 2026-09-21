@@ -5,7 +5,7 @@ build file, Log4j2 config, `application.properties`, and `schema.sql`.
 
 ---
 
-## 1. Claude Code context for Spring Boot
+## 1. Codex execution context for Spring Boot
 
 - Embedded Tomcat listening on `localhost:8080` (or configured port).
 - Application lifecycle: start → handle requests → graceful shutdown (`Ctrl+C`).
@@ -173,7 +173,7 @@ logging.level.com.example=DEBUG
 logging.level.org.hibernate.SQL=DEBUG
 logging.level.org.hibernate.type.descriptor.sql=TRACE
 
-# H2 console (optional, disabled for Claude Code)
+# H2 console (optional, disabled for headless Codex runs)
 spring.h2.console.enabled=false
 ```
 

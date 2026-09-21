@@ -1,150 +1,44 @@
 ---
 name: ascii-diagrams
-description: >-
-  Genera diagramas ASCII (de flujo/flowchart, de secuencia/interaccion, arboles/jerarquias) con anchos, paddings, margenes y alineacion de flechas calculados automaticamente por un script, nunca escritos "a mano" caracter por caracter. Usa esta skill siempre que el usuario pida un diagrama en texto plano, ASCII o monoespaciado: diagramas de flujo, flowcharts, diagramas de secuencia, diagramas de interaccion entre servicios o actores, arboles de directorios, jerarquias organizacionales, arboles de decision, o cualquier diagrama de cajas y nodos conectados por flechas que deba pegarse en un README, comentario de codigo, ticket, o terminal. Tambien usala si el usuario pide "dibujar" o "esquematizar" un proceso, flujo, arquitectura o conversacion entre componentes en formato texto (no imagen).
+description: "Trigger: ASCII diagrams, plain text, flowcharts, sequences, trees, or hierarchies. Render with the bundled script; never draw boxes manually."
 ---
 
-# Diagramas ASCII
+# ASCII Diagrams
 
-Esta skill genera diagramas ASCII precisos renderizando una descripcion JSON del
-diagrama con `./render_diagram.py`. El script calcula matematicamente:
+## Activation Contract
 
-- El ancho de cada caja segun el texto que contiene (con wrap de palabras si es largo).
-- El padding interno y los bordes.
-- La separacion horizontal entre cajas de una misma fila/capa.
-- Las columnas donde caen las lineas de flujo/lifelines.
-- El enrutado de flechas (incluidas las que "saltan" niveles) sin atravesar cajas.
+Use this skill when the user asks to represent a flow, interaction, architecture, tree, or hierarchy as plain text, ASCII, or monospaced content for terminals, documentation, or comments.
 
-**Nunca dibujes el diagrama tecleando caracteres de caja a mano línea por línea.**
-Aunque el diagrama parezca simple, siempre construye el JSON y ejecuta el script.
-Esto es lo que garantiza que el padding, el centrado del texto y el espaciado de
-las flechas sean correctos incluso cuando las etiquetas tienen longitudes distintas.
+## Hard Rules
 
-## Flujo de trabajo
+- Always generate the diagram with `render_diagram.py`; never write or correct the final diagram characters manually.
+- Preserve the renderer output exactly inside a code block.
+- Check that no text is truncated and every connection points to the correct destination.
+- If the result is not readable, change the JSON and render it again.
+- Do not create a persistent file unless the user requests one; use stdin or a temporary file.
 
-1. Identifica el tipo de diagrama que se necesita: `flowchart`, `sequence`, o `tree`
-   (ver "Elegir el tipo" abajo).
-2. Construye el JSON de entrada siguiendo el esquema de esa seccion.
-3. Ejecuta:
-   ```bash
-   python3 ./render_diagram.py input.json
-   ```
-   (o pipea el JSON por stdin con `-`). Usa `-o archivo.txt` si el usuario quiere
-   el resultado guardado en un archivo.
-4. Revisa la salida: confirma que ningun texto quedo cortado y que las flechas
-   apuntan a donde corresponde. Si una etiqueta es muy larga y rompe la
-   legibilidad, acortala en el JSON y vuelve a ejecutar — no edites el ASCII
-   resultante a mano.
-5. Pega el resultado tal cual (dentro de un bloque de codigo ```) en tu
-   respuesta. Si el usuario pidio un archivo, ya se genero con `-o`.
+## Decision Gates
 
-## Elegir el tipo
+| Need | Type |
+| --- | --- |
+| Process, algorithm, pipeline, decision, or directed architecture | `flowchart` |
+| Ordered messages between actors or services | `sequence` |
+| Folders, organization chart, taxonomy, or hierarchy | `tree` |
+| Ambiguous architecture with boxes and arrows | `flowchart` |
 
-- **`flowchart`** — procesos, algoritmos, diagramas de decision, pipelines,
-  cualquier cosa con pasos y (opcionalmente) ramas condicionales ("si"/"no").
-- **`sequence`** — interaccion entre actores/servicios en el tiempo: quien le
-  manda que mensaje a quien y en que orden (APIs, protocolos, llamadas entre
-  microservicios, flujos de autenticacion, etc).
-- **`tree`** — jerarquias: estructuras de carpetas/archivos, organigramas,
-  arboles de decision sin condiciones de "vuelta", taxonomias.
+## Execution Steps
 
-Si el diagrama pedido no encaja claramente en ninguno (p. ej. un diagrama de
-arquitectura con cajas dispersas y flechas en cualquier direccion), usa
-`flowchart` de todas formas: las cajas conectadas por flechas con dirección son
-el caso general que mejor soporta el layout automatico.
+1. Read `references/schema.md` and choose the diagram type.
+2. Build valid JSON with concise labels and every required connection.
+3. Resolve `render_diagram.py` from the directory containing this `SKILL.md`, not from the user's current working directory.
+4. Run the script with the available Python launcher (`python`, with `python3` as a fallback), preferably sending JSON through stdin with `-`.
+5. Inspect the output; if crossings are confusing or labels are too long, adjust the JSON and run it again.
+6. If the user requested a file, use `-o PATH` and report the created path.
 
-## Esquema: flowchart
+## Output Contract
 
-```json
-{
-  "type": "flowchart",
-  "nodes": [
-    {"id": "A", "label": "Inicio"},
-    {"id": "B", "label": "Es valido?", "shape": "diamond"},
-    {"id": "C", "label": "Procesar"}
-  ],
-  "edges": [
-    {"from": "A", "to": "B"},
-    {"from": "B", "to": "C", "label": "si"}
-  ]
-}
-```
+Return the rendered ASCII unchanged inside a code block. Add a brief note only when a relevant limitation exists or a file was created.
 
-- `id`: identificador corto, unico, usado solo para conectar `edges`.
-- `label`: el texto visible dentro de la caja. Puede tener varias palabras;
-  el script hace wrap automatico si es largo (no hace falta insertar saltos
-  de linea a mano).
-- `shape`: `"box"` (default) o `"diamond"` para decisiones. Mantén las
-  etiquetas de los diamantes cortas (1 linea, idealmente < 20 caracteres):
-  el rombo se calcula para una sola linea de texto.
-- `edges[].label`: opcional, texto sobre la flecha (p. ej. "si"/"no").
-- El layout (capas, orden, alineacion de cadenas simples) se calcula solo a
-  partir de las conexiones — no hay forma de fijar posiciones manualmente, y
-  no deberia hacer falta.
-- El script detecta automaticamente cuando una flecha "salta" mas de un nivel
-  (por ejemplo un `if` que se reincorpora varios pasos despues) y la enruta
-  por un carril lateral para no atravesar cajas intermedias.
+## References
 
-## Esquema: sequence
-
-```json
-{
-  "type": "sequence",
-  "participants": ["Cliente", "API", "BaseDeDatos"],
-  "messages": [
-    {"from": "Cliente", "to": "API", "label": "POST /login", "style": "solid"},
-    {"from": "API", "to": "BaseDeDatos", "label": "SELECT usuario", "style": "solid"},
-    {"from": "BaseDeDatos", "to": "API", "label": "fila encontrada", "style": "dashed"},
-    {"from": "API", "to": "Cliente", "label": "200 OK", "style": "dashed"}
-  ]
-}
-```
-
-- `participants`: orden de izquierda a derecha de las lifelines.
-- `messages`: en el orden temporal en que ocurren (de arriba hacia abajo).
-- `style`: `"solid"` para llamadas/requests, `"dashed"` para respuestas/retornos
-  (convencion estandar en diagramas de secuencia).
-- El ancho de cada columna y el espacio entre lifelines se recalculan
-  automaticamente (con varias pasadas) hasta que hasta el mensaje con la
-  etiqueta mas larga —incluidos mensajes entre participantes no adyacentes—
-  entra sin cortarse.
-- Mensajes con `from == to` (auto-llamadas) se muestran como una nota inline;
-  no dibujan un loop completo.
-
-## Esquema: tree
-
-```json
-{
-  "type": "tree",
-  "root": {
-    "label": "src/",
-    "children": [
-      {"label": "components/", "children": [
-        {"label": "Button.tsx"},
-        {"label": "Header.tsx"}
-      ]},
-      {"label": "index.ts"}
-    ]
-  }
-}
-```
-
-- Estructura recursiva estandar. `children` es opcional (hojas no lo llevan).
-- El indentado y los conectores (`├──`, `└──`, `│`) se calculan recursivamente
-  segun la profundidad y si cada nodo es el ultimo de su nivel — igual que el
-  comando `tree` de Unix.
-
-## Limitaciones a tener en cuenta
-
-- El layout de `flowchart` ordena las cajas de cada capa en el orden en que
-  aparecen los nodos en el JSON (mas una heuristica de alineacion para
-  cadenas simples de 1 padre → 1 hijo). En grafos con muchas ramas que se
-  cruzan entre si, el resultado sigue siendo correcto y sin solapamientos,
-  pero puede no ser el mas compacto visualmente — si el usuario pide algo
-  muy elaborado, considera dividirlo en sub-diagramas mas simples.
-- Los diamantes (`shape: diamond`) estan pensados para etiquetas de una sola
-  linea; si el texto es muy largo, acortalo (p. ej. "¿Stock disponible?" en
-  vez de una oracion completa).
-- En `sequence`, las auto-llamadas (`from == to`) no dibujan un loop visual,
-  solo una nota — si el usuario necesita el loop clasico, acláralo como
-  limitacion conocida.
+- [Schemas and limitations](references/schema.md) — JSON formats for `flowchart`, `sequence`, and `tree`.

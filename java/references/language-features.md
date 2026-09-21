@@ -166,3 +166,14 @@ list.reversed();       // view, not a copy
 ```
 
 ---
+
+## 7. Executable delivery patterns
+
+Use these rules only when the requested deliverable is a standalone executable program:
+
+- Provide a clear `main` entry point.
+- Write results to `System.out` and actionable failures to `System.err`.
+- Catch specific exceptions before broader fallbacks and use a non-zero exit code on failure.
+- Use `java.util.logging` for longer-running standard-library-only programs; keep normal progress at `INFO` and detailed tracing at `FINE`.
+
+For quick single-file programs, run `java App.java` or compile with `javac App.java` followed by `java App`. For existing Maven or Gradle projects, use the repository's configured application entry point and tasks instead of introducing a second launcher.

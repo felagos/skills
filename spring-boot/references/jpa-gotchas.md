@@ -39,4 +39,3 @@ logging on every read path and test N+1 with small datasets, before the data gro
 - Log4j2 Spring Boot integration: https://docs.spring.io/spring-boot/reference/features/logging.html
 - Java 21 Language Features: https://docs.oracle.com/en/java/javase/21/docs/specs/
 - Clean Architecture: https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html
-- Claude Code Docs: https://docs.anthropic.com/en/docs/claude-code/overview
