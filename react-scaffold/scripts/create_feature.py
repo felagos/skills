@@ -76,7 +76,7 @@ SERVICE_TEMPLATE = """// API calls for the {feature_pascal} feature.
 // Keep this the only place in the feature that talks to the network.
 
 export const {feature_camel}Service = {{
-  // async getAll() {{
+  // getAll: async () => {{
   //   const res = await fetch('/api/{feature_kebab}')
   //   return res.json()
   // }},
@@ -95,7 +95,7 @@ export * from './types'
 # produce byte-identical component folders.
 COMPONENT_TSX_TEMPLATE = """import styles from './{name}.module.{ext}'
 
-interface {name}Props {{}}
+export interface {name}Props {{}}
 
 export const {name} = ({{}}: {name}Props) => {{
   return (

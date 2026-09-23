@@ -24,7 +24,7 @@ import sys
 
 TSX_TEMPLATE = """import styles from './{name}.module.{ext}'
 
-interface {name}Props {{}}
+export interface {name}Props {{}}
 
 export const {name} = ({{}}: {name}Props) => {{
   return (

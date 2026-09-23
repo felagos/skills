@@ -12,6 +12,7 @@ Use this skill to create or reorganize React/TypeScript components, scaffold fea
 ## Hard Rules
 
 - Inspect an existing nearby component, feature, and test before choosing names, exports, styles, or test syntax.
+- Declare every React/TypeScript function, hook, and component created or edited by this skill as an arrow function, even when nearby code uses function declarations.
 - Prefer the repository's established convention over this skill's defaults.
 - When no convention exists, place each component in a PascalCase folder containing `ComponentName.tsx`, `ComponentName.module.scss`, and `index.ts`.
 - Export the component and its `ComponentNameProps` type from `index.ts`.
@@ -23,7 +24,7 @@ Use this skill to create or reorganize React/TypeScript components, scaffold fea
 
 | Situation | Action |
 | --- | --- |
-| Existing project convention differs | Follow the project, including `type` vs `interface`, CSS technology, export style, and test runner. |
+| Existing project convention differs | Follow the project, including `type` vs `interface`, CSS technology, export style, and test runner; retain the arrow-function rule above. |
 | One custom component | Create or edit the files directly. |
 | Repeated mechanical scaffolding | Use the bundled script, then replace generated stubs with requested behavior. |
 | Feature-based organization | Read `references/feature-folders.md` and use `create_feature.py` when appropriate. |
