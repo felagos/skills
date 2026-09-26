@@ -35,7 +35,7 @@ Use this skill to create or reorganize React/TypeScript components, scaffold fea
 
 1. Inspect the target tree, package scripts, aliases, styling, exports, and nearby tests.
 2. Choose the repository convention or, if absent, the defaults in this skill.
-3. Resolve bundled scripts relative to this `SKILL.md`, not the user's current working directory. Invoke them with the available Python launcher (`python`, falling back to `python3`).
+3. Resolve bundled scripts relative to this `SKILL.md`, not the user's current working directory. Invoke them with the available Python launcher (`python`, falling back to `python3`); use `--help` for options instead of reading their source.
 4. For components, run `scripts/create_component.py NAME --dir PARENT` and add `--test` only when required.
 5. For features, follow `references/feature-folders.md` and run `scripts/create_feature.py` with the needed flags.
 6. Implement real props, JSX, styles, exports, and tests; then run focused type checks and tests.

@@ -11,7 +11,7 @@ Use this skill for Spring Boot backend work, including REST APIs, use cases, per
 
 ## Hard Rules
 
-- Read `references/conventions.md` before writing or reviewing Java code.
+- Read `references/conventions.md` before writing or reviewing Java code; skip it for questions these rules already answer.
 - Use Java 21, Spring Boot 3.3+, and Gradle by default; use Maven only when requested or already established.
 - Do not use Lombok, field injection, or `@Autowired`; use explicit constructors and `final` dependencies.
 - Keep domain models free of Spring, JPA, HTTP, and DTO types.

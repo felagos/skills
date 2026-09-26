@@ -1,5 +1,7 @@
 # Entities, repositories, mappers — full reference
 
+Read only the section the task needs: §1–§2 entities · §3 repositories and adapter · §4 N+1 · §5 mapper · §6 pagination · §7 batch inserts · §8 `@DataJpaTest`.
+
 Corrected, internally-consistent code for the `Order` aggregate (root `OrderEntity` +
 child `OrderItemEntity`) plus a supporting `ProductEntity`. Assumes a domain `Order` /
 `OrderLine` shaped to match these entities field-for-field (adjust accessor names to your
@@ -199,53 +201,7 @@ public class OrderItemEntity {
 
 ## §2. ProductEntity
 
-```java
-package com.example.infrastructure.persistence.entity;
-
-import jakarta.persistence.*;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.UUID;
-
-@Entity
-@Table(name = "products")
-public class ProductEntity {
-
-    @Id
-    @Column(columnDefinition = "CHAR(36)", updatable = false, nullable = false)
-    private UUID id;
-
-    @Column(nullable = false)
-    private String name;
-
-    @Column(nullable = false)
-    private BigDecimal price;
-
-    @Column(name = "category_id")
-    private UUID categoryId;
-
-    @Column(updatable = false, nullable = false)
-    private Instant createdAt;
-
-    protected ProductEntity() {}
-
-    public static ProductEntity create(String name, BigDecimal price, UUID categoryId) {
-        var product = new ProductEntity();
-        product.id = UUID.randomUUID();
-        product.name = name;
-        product.price = price;
-        product.categoryId = categoryId;
-        product.createdAt = Instant.now();
-        return product;
-    }
-
-    public UUID getId()           { return id; }
-    public String getName()       { return name; }
-    public BigDecimal getPrice()  { return price; }
-    public UUID getCategoryId()   { return categoryId; }
-    public Instant getCreatedAt() { return createdAt; }
-}
-```
+Same pattern as `OrderEntity` without children: `create()` + `reconstitute()`, no setters. Full code in `./complete-example.md` §4.
 
 ---
 

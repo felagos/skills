@@ -12,6 +12,7 @@ Use this skill when the user asks to represent a flow, interaction, architecture
 ## Hard Rules
 
 - Always generate the diagram with `render_diagram.py`; never write or correct the final diagram characters manually.
+- `references/schema.md` is the script's full interface; do not read `render_diagram.py` itself.
 - Preserve the renderer output exactly inside a code block.
 - Check that no text is truncated and every connection points to the correct destination.
 - If the result is not readable, change the JSON and render it again.
