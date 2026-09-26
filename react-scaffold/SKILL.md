@@ -1,6 +1,6 @@
 ---
 name: react-scaffold
-description: "Trigger: React/TypeScript component or feature scaffolding, component-folder refactors, or Jest/Vitest test organization. Follow project conventions first."
+description: "Scaffolds and reorganizes React/TypeScript components and feature folders (component folder with .tsx, style module and index barrel) and structures Jest/Vitest tests, deferring to existing project conventions. Use when creating or refactoring React components, organizing a feature-based frontend layout, or writing and restructuring React tests."
 ---
 
 # React Scaffold

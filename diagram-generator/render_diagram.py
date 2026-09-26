@@ -478,7 +478,7 @@ RENDERERS = {
 
 def main():
     # Windows may default redirected output to a legacy code page that cannot
-    # represent box-drawing characters. Codex captures stdout/stderr, so make
+    # represent box-drawing characters. Agent harnesses often capture stdout/stderr, so make
     # the renderer's text contract explicit and consistent across platforms.
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')

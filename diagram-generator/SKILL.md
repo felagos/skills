@@ -1,6 +1,6 @@
 ---
-name: ascii-diagrams
-description: "Trigger: ASCII diagrams, plain text, flowcharts, sequences, trees, or hierarchies. Render with the bundled script; never draw boxes manually."
+name: diagram-generator
+description: "Renders plain-text ASCII diagrams (flowcharts, sequence diagrams, trees and hierarchies) from JSON using a bundled Python script that computes layout, spacing and arrow routing. Use when the user asks to draw, sketch or diagram a process, architecture, service interaction, directory tree or org chart as text for a README, code comment, ticket or terminal."
 ---
 
 # ASCII Diagrams

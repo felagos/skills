@@ -1,9 +1,9 @@
 ---
-name: java21-claude-code
-description: "Trigger: Java, Java 21, Java code, refactoring, or review. Write modern, idiomatic Java 21 for Codex without Lombok."
+name: java
+description: "Writes, refactors and reviews modern, idiomatic Java 21 code (records, sealed types, pattern matching, virtual threads) without Lombok, respecting the repository's build tool and conventions. Use when the task involves Java source code, Java 21 features, or a Java code review or refactor."
 ---
 
-# Java 21 for Codex
+# Java 21
 
 ## Activation Contract
 

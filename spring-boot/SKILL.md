@@ -1,6 +1,6 @@
 ---
 name: spring-boot
-description: "Trigger: Spring Boot, Spring, REST, JPA, Hibernate, repositories, database queries, or JVM backends. Build Java 21 hexagonal services."
+description: "Builds and reviews Spring Boot 3 services in Java 21 using hexagonal architecture: REST controllers, use cases, JPA/Hibernate persistence, repositories and query tuning (N+1, pagination, batching). Use when working on a Spring or Spring Boot backend, REST API, JPA entity or repository, or database query performance in a JVM service."
 ---
 
 # Spring Boot 3 + Java 21
