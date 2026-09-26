@@ -29,17 +29,13 @@ Use this skill for writing, refactoring, reviewing, or explaining Java code. Tar
 | Concurrency task | Prefer virtual threads for blocking I/O; do not use them as a default for CPU-bound work. |
 | Records, sealed types, pattern matching, streams, text blocks, or virtual threads | Read the relevant section of `references/language-features.md`. |
 
-## Execution Steps
+## Verification
 
-1. Inspect the repository and identify the build tool, Java version, package layout, and test framework.
-2. Read only the relevant sections of `references/language-features.md`.
-3. Implement the smallest change that satisfies the request while preserving repository conventions.
-4. Compile and run focused tests when the environment permits; report anything that could not be verified.
-5. Review the result for Java 21 compatibility, explicit resource ownership, and actionable exception handling.
+Compile and run focused tests when the environment permits, and check the result for Java 21 compatibility, explicit resource ownership, and actionable exception handling.
 
 ## Output Contract
 
-Return the implemented or reviewed Java result, a concise summary of important decisions, and the exact verification performed. For reviews, lead with concrete findings and file locations.
+Return the implemented or reviewed Java result, a concise summary of important decisions, and the exact verification performed, including anything that could not be verified. For reviews, lead with concrete findings and file locations.
 
 ## References
 

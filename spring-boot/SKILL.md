@@ -32,13 +32,9 @@ Use this skill for Spring Boot backend work, including REST APIs, use cases, per
 | N+1, slow queries, pagination, or batching problem | Read `references/jpa-gotchas.md` and verify generated SQL. |
 | Full project setup | Read `references/project-setup.md`; consult `references/complete-example.md` only when end-to-end wiring is needed. |
 
-## Execution Steps
+## Verification
 
-1. Inspect build files, configuration, architecture, database settings, migrations, and tests.
-2. Read `references/conventions.md` and only the task-relevant supporting references.
-3. Confirm the database before introducing or replacing persistence configuration.
-4. Implement the smallest coherent change across domain, application, and required adapters.
-5. Run focused tests and inspect SQL for persistence-sensitive paths; report unverified behavior.
+Run focused tests, and inspect the generated SQL on persistence-sensitive paths. Report any behavior you could not verify.
 
 ## Output Contract
 

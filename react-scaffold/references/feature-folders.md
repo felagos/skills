@@ -34,14 +34,14 @@ Rules that make this scale:
 - **Group by use case, not by layer.** Each subfolder of `features/` is one use case (`auth`, `billing`, `dashboard`...), and each contains its own `components/`, `pages/`, `services/`, `hooks/`, and `types`.
 - **Features never import from each other's internals.** `dashboard/` may only import from `features/billing` (the barrel export in its `index.ts`), never from `features/billing/components/SomeThing/SomeThing.tsx` directly. This keeps every feature swappable or extractable later.
 - **`shared/` holds only what's transversal to the whole project** — generic UI, the base API client, cross-feature hooks, global types. Anything domain-specific belongs inside its feature's own folder, not `shared/` — otherwise it becomes a dumping ground as the app grows. `shared/` has no `pages/`, since pages always belong to a specific use case.
-- **Each feature reuses the same component convention** described above — a `components/SomeThing/` folder (in a feature or in `shared/`) is scaffolded exactly like a top-level component, with its own `SomeThing.module.scss`.
+- **Each feature reuses the component convention from `SKILL.md`** — a `components/SomeThing/` folder (in a feature or in `shared/`) is scaffolded exactly like a top-level component, with its own `SomeThing.module.scss`.
 
 ### Generating a feature folder
 
 Use the bundled script to scaffold a full feature:
 
 ```bash
-python3 scripts/create_feature.py featureName --dir path/to/features
+python scripts/create_feature.py featureName --dir path/to/features
 ```
 
 This creates:
@@ -67,7 +67,7 @@ Options:
 To scaffold the project's `shared/` folder (once, at project setup):
 
 ```bash
-python3 scripts/create_feature.py shared --shared --dir src
+python scripts/create_feature.py shared --shared --dir src
 ```
 
 The script normalizes the feature name to kebab-case for the folder (`userProfile` → `user-profile`) and to PascalCase/camelCase for identifiers inside the files, so casing stays consistent automatically.

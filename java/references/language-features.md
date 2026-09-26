@@ -3,7 +3,6 @@
 Reference for the modern Java 21 idioms this skill mandates: `var`, records, sealed classes,
 pattern matching (including record patterns), functional style, text blocks, virtual threads,
 and sequenced collections. `SKILL.md` carries the non-negotiables; the examples live here.
-Section numbers (§1–§6) are kept from the original SKILL.md.
 
 ---
 
@@ -24,9 +23,9 @@ try (var connection = dataSource.getConnection()) { ... }
 
 ---
 
-## 2. Records — immutable value objects (MANDATORY)
+## 2. Records — immutable value objects
 
-Use `record` for any immutable value object, DTO, or result when: (1) it never needs mutation after creation, and (2) no special serialization requires a no-arg constructor. **Never** write a getters/setters class when a record suffices.
+Use `record` for any immutable value object, DTO, or result when: (1) it never needs mutation after creation, and (2) no special serialization requires a no-arg constructor. A getters/setters class adds boilerplate without adding behavior in that case.
 
 ```java
 public record Point(int x, int y) {}

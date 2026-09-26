@@ -2,7 +2,7 @@
 
 Read only the section the task needs: §1–§2 entities · §3 repositories and adapter · §4 N+1 · §5 mapper · §6 pagination · §7 batch inserts · §8 `@DataJpaTest`.
 
-Corrected, internally-consistent code for the `Order` aggregate (root `OrderEntity` +
+Internally consistent code for the `Order` aggregate (root `OrderEntity` +
 child `OrderItemEntity`) plus a supporting `ProductEntity`. Assumes a domain `Order` /
 `OrderLine` shaped to match these entities field-for-field (adjust accessor names to your
 actual domain model — the mapper in §5 is the one place that needs to change if it differs):
